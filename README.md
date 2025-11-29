@@ -1,1 +1,0 @@
-# MaScan-Attendance-Checker
