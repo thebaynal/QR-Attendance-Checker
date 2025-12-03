@@ -391,23 +391,46 @@ class MoScanApp:
     def navigate_home(self):
         """Navigate to home and close drawer."""
         if self.drawer:
-            self.drawer.open = False
-            self.drawer.update()
+            try:
+                self.drawer.open = False
+                self.drawer.update()
+            except:
+                pass
         self.page.go("/home")
     
     def logout_handler(self):
         """Handle logout and close drawer."""
+        # First close the drawer
         if self.drawer:
-            self.drawer.open = False
-            self.drawer.update()
+            try:
+                self.drawer.open = False
+                self.page.update()
+            except:
+                pass
+        
+        # Small delay to allow drawer to close
+        time.sleep(0.1)
+        
+        # Then logout
         self.logout()
 
     def logout(self):
         """Handle logout."""
+        # Stop camera if running
+        if self.qr_scanner and self.qr_scanner.is_running:
+            self.qr_scanner.stop()
+        
+        # Clear user and drawer
         self.current_user = None
-        if self.drawer and self.drawer in self.page.overlay:
-            self.page.overlay.remove(self.drawer)
+        if self.drawer:
+            try:
+                if self.drawer in self.page.overlay:
+                    self.page.overlay.remove(self.drawer)
+            except:
+                pass
         self.drawer = None
+        
+        # Navigate to login
         self.page.go("/")
 
     def show_snackbar(self, message: str, color: str = ft.Colors.BLUE):
@@ -719,6 +742,21 @@ class MoScanApp:
             width=640,
             height=480,
             fit=ft.ImageFit.CONTAIN,
+            visible=False,
+            error_content=ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Icon(ft.Icons.CAMERA_ALT, size=50, color=ft.Colors.GREY_400),
+                        ft.Text("Loading camera...", size=12, color=ft.Colors.GREY_600)
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    alignment=ft.MainAxisAlignment.CENTER
+                ),
+                bgcolor=ft.Colors.GREY_200,
+                width=640,
+                height=480,
+                alignment=ft.alignment.center
+            )
         )
         
         camera_icon = ft.Container(
@@ -865,40 +903,38 @@ class MoScanApp:
             f"/scan/{event_id}",
             [
                 self.create_app_bar(event['name'], show_back=True),
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            camera_container,
-                            camera_status,
-                            ft.Row(
-                                [
-                                    qr_input,
-                                    camera_btn,
-                                    ft.IconButton(
-                                        icon=ft.Icons.SEND,
-                                        icon_color=ft.Colors.WHITE,
-                                        bgcolor=ft.Colors.BLUE_700,
-                                        on_click=handle_manual_scan
-                                    )
-                                ],
-                                alignment=ft.MainAxisAlignment.CENTER
-                            ),
-                            ft.Divider(),
-                            ft.Text("Recent Activity", weight=ft.FontWeight.BOLD),
-                            ft.Container(
-                                content=scan_log,
-                                height=200,
-                                border=ft.border.all(1, ft.Colors.GREY_300),
-                                border_radius=10
-                            )
-                        ],
-                        spacing=15
-                    ),
-                    padding=20,
+                ft.Column(
+                    controls=[
+                        camera_container,
+                        camera_status,
+                        ft.Row(
+                            [
+                                qr_input,
+                                camera_btn,
+                                ft.IconButton(
+                                    icon=ft.Icons.SEND,
+                                    icon_color=ft.Colors.WHITE,
+                                    bgcolor=ft.Colors.BLUE_700,
+                                    on_click=handle_manual_scan
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.CENTER
+                        ),
+                        ft.Divider(),
+                        ft.Text("Recent Activity", weight=ft.FontWeight.BOLD),
+                        ft.Container(
+                            content=scan_log,
+                            height=200,
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=10
+                        )
+                    ],
+                    spacing=15,
+                    scroll=ft.ScrollMode.AUTO,
                     expand=True,
-                    scroll=ft.ScrollMode.AUTO
                 )
-            ]
+            ],
+            padding=20
         )
 
     def event_detail_view(self, event_id: str):
