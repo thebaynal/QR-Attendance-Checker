@@ -2,12 +2,16 @@ import flet as ft
 from datetime import datetime
 import time
 import sqlite3
-import random # Used for simple mock event ID generation
+import random
+from typing import Optional, Dict, List
+import cv2
+from pyzbar import pyzbar
+import threading
+import base64
+import numpy as np
 
-# --- GLOBAL MOCK DATA (Only for Employee IDs) ---
-
-# Employee database (user ID is the QR content)
-USERS = {
+# --- CONSTANTS ---
+EMPLOYEES = {
     "E101": "Alice Smith",
     "E102": "Bob Johnson",
     "E103": "Charlie Brown",
@@ -15,50 +19,40 @@ USERS = {
     "E105": "Ethan Hunt",
     "E106": "Fiona Gallagher",
     "S999": "System Test Key"
-    
 }
 
-CURRENT_USER_NAME = None # Tracks the currently logged-in user
-CURRENT_EVENT_ID = None # Tracks the event ID being scanned or viewed
-
-# --- DATABASE CLASS (SQLite Persistence) ---
-
+# --- DATABASE CLASS ---
 class Database:
     """Handles all SQLite interactions for events and attendance."""
-    def __init__(self, db_name="moscan_attendance.db"):
+    
+    def __init__(self, db_name: str = "moscan_attendance.db"):
         self.db_name = db_name
-        self.conn = None
         self.create_tables()
 
-    def _execute(self, query, params=(), commit=True, fetch_all=False, fetch_one=False):
-        """Internal helper for executing SQL commands."""
+    def _execute(self, query: str, params: tuple = (), commit: bool = True, 
+                 fetch_all: bool = False, fetch_one: bool = False):
+        """Execute SQL command with proper error handling."""
         result = None
         try:
-            self.conn = sqlite3.connect(self.db_name)
-            cursor = self.conn.cursor()
-            cursor.execute(query, params)
-            
-            if fetch_one:
-                result = cursor.fetchone()
-            elif fetch_all:
-                result = cursor.fetchall()
-            
-            if commit:
-                self.conn.commit()
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
                 
+                if fetch_one:
+                    result = cursor.fetchone()
+                elif fetch_all:
+                    result = cursor.fetchall()
+                
+                if commit:
+                    conn.commit()
+                    
             return result
         except sqlite3.Error as e:
             print(f"Database error: {e}")
             return None
-        finally:
-            if self.conn:
-                self.conn.close()
 
     def create_tables(self):
-        """Creates the necessary tables if they don't exist."""
-        print(f"Attempting to connect to database: {self.db_name}")
-        
-        # Events table
+        """Create necessary tables if they don't exist."""
         event_table_sql = """
         CREATE TABLE IF NOT EXISTS events (
             id TEXT PRIMARY KEY,
@@ -68,7 +62,6 @@ class Database:
         )
         """
         
-        # Attendance log table
         attendance_table_sql = """
         CREATE TABLE IF NOT EXISTS attendance (
             event_id TEXT NOT NULL,
@@ -80,15 +73,11 @@ class Database:
             FOREIGN KEY (event_id) REFERENCES events(id)
         )
         """
-        self._execute(event_table_sql, commit=True)
-        self._execute(attendance_table_sql, commit=True)
-        print("Database tables ensured.")
+        self._execute(event_table_sql)
+        self._execute(attendance_table_sql)
 
-
-    # --- EVENT METHODS ---
-
-    def get_all_events(self):
-        """Fetches all events."""
+    def get_all_events(self) -> Dict:
+        """Fetch all events."""
         query = "SELECT id, name, date, description FROM events ORDER BY date DESC"
         results = self._execute(query, fetch_all=True)
         
@@ -99,12 +88,12 @@ class Database:
                 events[event_id] = {
                     "name": name, 
                     "date": date, 
-                    "desc": description
+                    "desc": description or "No description"
                 }
         return events
 
-    def get_event_by_id(self, event_id):
-        """Fetches a single event by ID."""
+    def get_event_by_id(self, event_id: str) -> Optional[Dict]:
+        """Fetch a single event by ID."""
         query = "SELECT id, name, date, description FROM events WHERE id = ?"
         row = self._execute(query, (event_id,), fetch_one=True)
         if row:
@@ -113,41 +102,55 @@ class Database:
                 "id": event_id,
                 "name": name,
                 "date": date,
-                "desc": description
+                "desc": description or "No description"
             }
         return None
 
-    def create_event(self, name, date, description):
-        """Inserts a new event into the database."""
-        # Simple ID generation
+    def create_event(self, name: str, date: str, description: str) -> str:
+        """Insert a new event into the database."""
         new_id = f"EID{int(time.time())}{random.randint(10, 99)}"
         query = "INSERT INTO events (id, name, date, description) VALUES (?, ?, ?, ?)"
         self._execute(query, (new_id, name, date, description))
         return new_id
 
-    # --- ATTENDANCE METHODS ---
+    def delete_event(self, event_id: str) -> bool:
+        """Delete an event and all its attendance records."""
+        # First delete all attendance records for this event
+        attendance_query = "DELETE FROM attendance WHERE event_id = ?"
+        self._execute(attendance_query, (event_id,))
+        
+        # Then delete the event itself
+        event_query = "DELETE FROM events WHERE id = ?"
+        result = self._execute(event_query, (event_id,))
+        return result is not None
 
-    def record_attendance(self, event_id, user_id, user_name, timestamp, status="Checked In"):
-        """Records a new attendance entry."""
+    def record_attendance(self, event_id: str, user_id: str, user_name: str, 
+                         timestamp: str, status: str = "Checked In"):
+        """Record a new attendance entry."""
         query = """
         INSERT INTO attendance (event_id, user_id, user_name, timestamp, status) 
         VALUES (?, ?, ?, ?, ?)
         """
         try:
             self._execute(query, (event_id, user_id, user_name, timestamp, status))
+            return True
         except sqlite3.IntegrityError:
-            # This handles the case where the user tries to check in twice (PRIMARY KEY violation)
-            pass
+            return False
 
-    def is_user_checked_in(self, event_id, user_id):
-        """Checks if a user has already checked in for a specific event."""
+    def is_user_checked_in(self, event_id: str, user_id: str) -> Optional[str]:
+        """Check if a user has already checked in for a specific event."""
         query = "SELECT timestamp FROM attendance WHERE event_id = ? AND user_id = ?"
         result = self._execute(query, (event_id, user_id), fetch_one=True)
         return result[0] if result else None
 
-    def get_attendance_by_event(self, event_id):
-        """Fetches all attendance records for a given event."""
-        query = "SELECT user_id, user_name, timestamp, status FROM attendance WHERE event_id = ? ORDER BY timestamp DESC"
+    def get_attendance_by_event(self, event_id: str) -> Dict:
+        """Fetch all attendance records for a given event."""
+        query = """
+        SELECT user_id, user_name, timestamp, status 
+        FROM attendance 
+        WHERE event_id = ? 
+        ORDER BY timestamp DESC
+        """
         results = self._execute(query, (event_id,), fetch_all=True)
         
         attendance_log = {}
@@ -161,794 +164,833 @@ class Database:
                 }
         return attendance_log
 
-# --- UI COMPONENTS (Shared/Helper) ---
 
-def create_app_bar(page: ft.Page, title: str, show_back_button: bool = False):
-    """Creates a standardized AppBar."""
+# --- QR CAMERA SCANNER CLASS ---
+class QRCameraScanner:
+    """Handle camera operations and QR code detection using OpenCV."""
     
-    # Refactored: Use a proper function to open the drawer safely
-    def open_menu(e):
-        if page.drawer:
-            page.drawer.open = True
-            page.update()
-        else:
-            print("Debug: Cannot open menu. page.drawer is not initialized.")
-
-    actions = [
-        ft.IconButton(
-            ft.icons.MENU,
-            tooltip="Open Menu",
-            # Updated to use the safe, dedicated handler
-            on_click=open_menu
-        )
-    ]
-    
-    if page.route == "/home":
-        title_widget = ft.Row([
-            ft.Text("MoScan", size=20, weight=ft.FontWeight.BOLD),
-        ])
-    else:
-        title_widget = ft.Text(title, size=20, weight=ft.FontWeight.BOLD)
-
-    return ft.AppBar(
-        leading=ft.Container(
-            content=ft.IconButton(
-                icon=ft.icons.ARROW_BACK,
-                on_click=lambda e: page.go("/home")
-            ) if show_back_button else None
-        ),
-        title=title_widget,
-        actions=actions,
-        bgcolor=ft.colors.WHITE,
-        elevation=1,
-    )
-
-# --- UTILITY FUNCTIONS ---
-
-def update_status(page: ft.Page, message: str, color: str = ft.colors.BLUE_900):
-    """Updates the status text on the page."""
-    # Find the status_text control in the current view's content
-    status_text = getattr(page.views[-1].controls[-1], 'status_text', None)
-    
-    if status_text:
-        status_text.value = message
-        status_text.color = color
-        status_text.size = 18
-        page.update()
+    def __init__(self, on_qr_detected, on_frame_update):
+        self.on_qr_detected = on_qr_detected
+        self.on_frame_update = on_frame_update
+        self.camera = None
+        self.is_running = False
+        self.thread = None
+        self.last_scanned = None
+        self.scan_cooldown = 2  # seconds between same QR scans
+        self.current_frame_base64 = None
         
-        def reset_size():
-            time.sleep(1.5)
-            status_text.size = 16
-            page.update()
-        page.run_thread(reset_size)
-    else:
-        print(f"Status update: {message}") # Fallback print if control isn't found
-
-# --- ATTENDANCE LOGIC (Now using DB) ---
-
-def record_attendance(page: ft.Page, db: Database, user_id: str, event_id: str, qr_input: ft.TextField, log_column: ft.Column):
-    """Handles the core logic for recording attendance using the database."""
+    def start(self):
+        """Start the camera and QR detection."""
+        if not self.is_running:
+            self.is_running = True
+            self.thread = threading.Thread(target=self._scan_loop, daemon=True)
+            self.thread.start()
     
-    # 1. Input Validation
-    user_id = user_id.strip().upper()
-    qr_input.value = "" # Clear input immediately
-
-    if not user_id:
-        update_status(page, "Error: Input is empty. Please scan/enter a QR code.", ft.colors.RED_600)
-        page.update()
-        return
-
-    # 2. Check if the ID is a known user
-    if user_id not in USERS:
-        update_status(page, f"Error: Unknown ID '{user_id}'. Access denied.", ft.colors.RED_600)
-        qr_input.disabled = True
-        page.update()
-        page.run_thread(lambda: (time.sleep(1), setattr(qr_input, 'disabled', False), page.update()))
-        return
-
-    user_name = USERS[user_id]
+    def stop(self):
+        """Stop the camera and QR detection."""
+        self.is_running = False
+        if self.camera:
+            self.camera.release()
+            self.camera = None
+        if self.thread:
+            self.thread.join(timeout=1)
     
-    # 3. Check if the user has already checked in (DB Check)
-    last_check_in_time = db.is_user_checked_in(event_id, user_id)
-    if last_check_in_time:
-        update_status(page, f"Warning: {user_name} already checked in at {last_check_in_time}.", ft.colors.ORANGE_700)
-        page.update()
-        return
+    def _scan_loop(self):
+        """Main scanning loop running in separate thread."""
+        self.camera = cv2.VideoCapture(0)
+        
+        if not self.camera.isOpened():
+            print("Error: Could not open camera")
+            self.is_running = False
+            return
+        
+        # Set camera properties for better performance
+        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        
+        while self.is_running:
+            ret, frame = self.camera.read()
+            
+            if not ret:
+                print("Error: Could not read frame")
+                break
+            
+            # Decode QR codes in the frame
+            decoded_objects = pyzbar.decode(frame)
+            
+            # Draw rectangles around detected QR codes
+            for obj in decoded_objects:
+                points = obj.polygon
+                if len(points) == 4:
+                    pts = [(point.x, point.y) for point in points]
+                    pts = [pts[i] for i in range(4)]
+                    cv2.polylines(frame, [np.array(pts, dtype=np.int32)], True, (0, 255, 0), 3)
+                
+                qr_data = obj.data.decode('utf-8')
+                current_time = time.time()
+                
+                # Check cooldown to avoid duplicate scans
+                if (self.last_scanned is None or 
+                    self.last_scanned[0] != qr_data or 
+                    current_time - self.last_scanned[1] > self.scan_cooldown):
+                    
+                    self.last_scanned = (qr_data, current_time)
+                    
+                    # Callback to main app
+                    if self.on_qr_detected:
+                        self.on_qr_detected(qr_data)
+            
+            # Convert frame to base64 for display
+            _, buffer = cv2.imencode('.jpg', frame)
+            jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+            self.current_frame_base64 = jpg_as_text
+            
+            # Update UI with new frame
+            if self.on_frame_update:
+                self.on_frame_update(jpg_as_text)
+            
+            # Small delay to reduce CPU usage
+            time.sleep(0.05)  # ~20 FPS
+        
+        if self.camera:
+            self.camera.release()
 
-    # 4. Successful Check-in (DB Insert)
-    current_time = datetime.now().strftime("%H:%M:%S")
-    db.record_attendance(event_id, user_id, user_name, current_time, status="Checked In")
+
+# --- MAIN APP CLASS ---
+class MoScanApp:
+    """Main application class for MoScan Attendance."""
     
-    # Update UI Log
-    add_to_scan_log(user_id, user_name, current_time, log_column)
+    def __init__(self, page: ft.Page):
+        self.page = page
+        self.db = Database()
+        self.current_user = None
+        self.drawer = None
+        self.qr_scanner = None
+        
+        # Configure page
+        self.page.title = "MoScan Attendance"
+        self.page.theme_mode = ft.ThemeMode.LIGHT
+        self.page.padding = 0
+        self.page.window.width = 500
+        self.page.window.height = 800
+        
+        # Setup routing
+        self.page.on_route_change = self.route_change
+        self.page.on_view_pop = self.view_pop
+        
+        # Initialize
+        self.page.go("/")
+
+    def route_change(self, e):
+        """Handle route changes."""
+        # Stop camera when leaving scan view
+        if self.qr_scanner and self.qr_scanner.is_running:
+            self.qr_scanner.stop()
+        
+        self.page.views.clear()
+
+        route = self.page.route
+        
+        if route == "/":
+            self.page.views.append(self.login_view())
+        elif route == "/home":
+            if not self.current_user:
+                self.page.go("/")
+                return
+            self.page.views.append(self.home_view())
+        elif route == "/create_event":
+            if not self.current_user:
+                self.page.go("/")
+                return
+            self.page.views.append(self.create_event_view())
+        elif route.startswith("/event/"):
+            if not self.current_user:
+                self.page.go("/")
+                return
+            event_id = route.split("/")[-1]
+            self.page.views.append(self.event_detail_view(event_id))
+        elif route.startswith("/scan/"):
+            if not self.current_user:
+                self.page.go("/")
+                return
+            event_id = route.split("/")[-1]
+            self.page.views.append(self.scan_view(event_id))
+            
+        self.page.update()
+
+    def view_pop(self, e):
+        """Handle back button."""
+        if len(self.page.views) > 1:
+            self.page.views.pop()
+            top_view = self.page.views[-1]
+            self.page.go(top_view.route)
+
+    def create_app_bar(self, title: str, show_back: bool = False):
+        """Create standardized app bar."""
+        def open_drawer(e):
+            self.open_end_drawer()
+        
+        return ft.AppBar(
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK,
+                on_click=lambda e: self.page.go("/home")
+            ) if show_back else None,
+            title=ft.Text(title, size=20, weight=ft.FontWeight.BOLD),
+            actions=[
+                ft.IconButton(
+                    icon=ft.Icons.MENU,
+                    on_click=open_drawer
+                )
+            ] if self.current_user else [],
+            bgcolor=ft.Colors.BLUE_700,
+            color=ft.Colors.WHITE,
+        )
+
+    def create_drawer(self):
+        """Create navigation drawer using BottomSheet as alternative."""
+        return ft.BottomSheet(
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        ft.ListTile(
+                            leading=ft.Icon(ft.Icons.PERSON, color=ft.Colors.BLUE_700),
+                            title=ft.Text(
+                                f"Welcome, {self.current_user or 'User'}!",
+                                weight=ft.FontWeight.BOLD,
+                                size=16
+                            ),
+                        ),
+                        ft.Divider(height=1),
+                        ft.ListTile(
+                            leading=ft.Icon(ft.Icons.HOME),
+                            title=ft.Text("Home"),
+                            on_click=lambda e: self.navigate_home()
+                        ),
+                        ft.ListTile(
+                            leading=ft.Icon(ft.Icons.LOGOUT, color=ft.Colors.RED),
+                            title=ft.Text("Logout", color=ft.Colors.RED),
+                            on_click=lambda e: self.logout_handler()
+                        ),
+                    ],
+                    tight=True,
+                ),
+                padding=20,
+            ),
+            open=False,
+        )
     
-    # Update Status
-    update_status(page, f"SUCCESS! {user_name} checked in at {current_time}.", ft.colors.GREEN_700)
+    def open_end_drawer(self):
+        """Open the navigation drawer."""
+        if self.drawer is None:
+            self.drawer = self.create_drawer()
+            self.page.overlay.append(self.drawer)
+            self.page.update()
+        self.drawer.open = True
+        self.drawer.update()
+    
+    def navigate_home(self):
+        """Navigate to home and close drawer."""
+        if self.drawer:
+            self.drawer.open = False
+            self.drawer.update()
+        self.page.go("/home")
+    
+    def logout_handler(self):
+        """Handle logout and close drawer."""
+        if self.drawer:
+            self.drawer.open = False
+            self.drawer.update()
+        self.logout()
 
-    page.update()
+    def logout(self):
+        """Handle logout."""
+        self.current_user = None
+        if self.drawer and self.drawer in self.page.overlay:
+            self.page.overlay.remove(self.drawer)
+        self.drawer = None
+        self.page.go("/")
 
-def add_to_scan_log(user_id: str, name: str, timestamp: str, log_column: ft.Column):
-    """Adds a new attendance record to the small log visible on the QR Scan screen."""
-    # Remove the placeholder if it exists
-    if log_column.controls and log_column.controls[0].content and hasattr(log_column.controls[0].content, 'value') and log_column.controls[0].content.value == "Latest scans will appear here...":
-         log_column.controls.pop(0)
+    def show_snackbar(self, message: str, color: str = ft.Colors.BLUE):
+        """Show snackbar message."""
+        snackbar = ft.SnackBar(
+            content=ft.Text(message),
+            bgcolor=color,
+        )
+        self.page.open(snackbar)
 
-    log_column.controls.insert(
-        0, # Insert at the top
-        ft.Container(
-            content=ft.Row(
-                [
-                    ft.Icon(ft.icons.CHECK_CIRCLE, color=ft.colors.GREEN_700, size=20),
-                    ft.Text(f"{name}", weight=ft.FontWeight.BOLD, size=14),
-                    ft.Text(f"({timestamp})", size=12, color=ft.colors.BLACK54),
+    # --- VIEWS ---
+    
+    def login_view(self):
+        """Login screen."""
+        username = ft.TextField(
+            label="Username",
+            width=300,
+            prefix_icon=ft.Icons.PERSON
+        )
+        password = ft.TextField(
+            label="Password",
+            width=300,
+            password=True,
+            can_reveal_password=True,
+            prefix_icon=ft.Icons.LOCK
+        )
+        
+        def authenticate(e):
+            if username.value and password.value:
+                self.current_user = "Admin User"
+                self.page.go("/home")
+            else:
+                self.show_snackbar("Please enter credentials", ft.Colors.RED)
+        
+        return ft.View(
+            "/",
+            [
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Icon(
+                                ft.Icons.QR_CODE_SCANNER,
+                                size=80,
+                                color=ft.Colors.BLUE_700
+                            ),
+                            ft.Text(
+                                "MoScan",
+                                size=40,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.BLUE_700
+                            ),
+                            ft.Text(
+                                "Attendance Management System",
+                                size=16,
+                                color=ft.Colors.GREY_700
+                            ),
+                            ft.Container(height=40),
+                            username,
+                            password,
+                            ft.Container(height=20),
+                            ft.ElevatedButton(
+                                "LOGIN",
+                                width=300,
+                                height=50,
+                                on_click=authenticate,
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.Colors.BLUE_700,
+                                    color=ft.Colors.WHITE,
+                                )
+                            ),
+                            ft.Container(height=20),
+                            ft.Text(
+                                "where showing up is mandatory. bro.",
+                                size=12,
+                                color=ft.Colors.GREY_500,
+                                italic=True
+                            )
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=10
+                    ),
+                    alignment=ft.alignment.center,
+                    expand=True
+                )
+            ],
+            bgcolor=ft.Colors.WHITE
+        )
+
+    def home_view(self):
+        """Home screen with event list."""
+        events = self.db.get_all_events()
+        
+        def delete_event_handler(event_id: str, event_name: str):
+            """Handle event deletion with confirmation."""
+            def confirm_delete(e):
+                self.db.delete_event(event_id)
+                self.show_snackbar(f"Event '{event_name}' deleted", ft.Colors.GREEN)
+                self.page.close(dialog)
+                self.page.go("/home")  # Refresh the view
+            
+            def cancel_delete(e):
+                self.page.close(dialog)
+            
+            dialog = ft.AlertDialog(
+                title=ft.Text("Delete Event"),
+                content=ft.Text(f"Are you sure you want to delete '{event_name}'? This will also delete all attendance records."),
+                actions=[
+                    ft.TextButton("Cancel", on_click=cancel_delete),
+                    ft.TextButton(
+                        "Delete",
+                        on_click=confirm_delete,
+                        style=ft.ButtonStyle(color=ft.Colors.RED)
+                    ),
                 ],
-                alignment=ft.MainAxisAlignment.START,
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+            self.page.open(dialog)
+        
+        def create_event_card(event_id: str, event_data: dict):
+            return ft.Card(
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.ListTile(
+                                leading=ft.Icon(ft.Icons.EVENT, color=ft.Colors.BLUE_700),
+                                title=ft.Text(
+                                    event_data['name'],
+                                    weight=ft.FontWeight.BOLD,
+                                    size=16
+                                ),
+                                subtitle=ft.Text(event_data['date']),
+                                trailing=ft.PopupMenuButton(
+                                    items=[
+                                        ft.PopupMenuItem(
+                                            text="View Attendance",
+                                            icon=ft.Icons.LIST,
+                                            on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
+                                        ),
+                                        ft.PopupMenuItem(
+                                            text="Start Scanning",
+                                            icon=ft.Icons.QR_CODE_SCANNER,
+                                            on_click=lambda e, eid=event_id: self.page.go(f"/scan/{eid}")
+                                        ),
+                                        ft.PopupMenuItem(),  # Divider
+                                        ft.PopupMenuItem(
+                                            text="Delete Event",
+                                            icon=ft.Icons.DELETE,
+                                            on_click=lambda e, eid=event_id, name=event_data['name']: delete_event_handler(eid, name)
+                                        ),
+                                    ]
+                                )
+                            ),
+                            ft.Container(
+                                content=ft.Text(
+                                    event_data['desc'],
+                                    size=12,
+                                    color=ft.Colors.GREY_700
+                                ),
+                                padding=ft.padding.only(left=16, right=16, bottom=10)
+                            )
+                        ]
+                    ),
+                    padding=0
+                )
+            )
+        
+        event_list = ft.ListView(
+            controls=[create_event_card(eid, data) for eid, data in events.items()],
+            spacing=10,
+            padding=20,
+            expand=True
+        ) if events else ft.Container(
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.EVENT_BUSY, size=80, color=ft.Colors.GREY_400),
+                    ft.Text("No events yet", size=20, color=ft.Colors.GREY_600),
+                    ft.Text("Create your first event", size=14, color=ft.Colors.GREY_500)
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10
             ),
-            padding=5,
-            border_radius=ft.border_radius.all(4),
-            bgcolor=ft.colors.WHITE
-        )
-    )
-    # Ensure the log doesn't grow too large on the screen
-    if len(log_column.controls) > 10:
-        log_column.controls.pop()
-
-    log_column.update()
-
-# --- VIEWS (SCREENS) ---
-
-def CreateEventView(page: ft.Page, db: Database):
-    """View for creating a new event."""
-    
-    status_text = ft.Text("", height=20) # Define status text control here
-
-    def save_event(e):
-        name = event_name_input.value.strip()
-        date = event_date_input.value.strip()
-        desc = event_desc_input.value.strip()
-        
-        if name and date:
-            db.create_event(name, date, desc if desc else "No description provided.")
-            page.go("/home")
-        else:
-            status_text.value = "Event Name and Date are required."
-            status_text.color = ft.colors.RED_600
-            page.update()
-
-    event_name_input = ft.TextField(label="Event Name (Required)", width=400)
-    event_date_input = ft.TextField(label="Date (e.g., Nov 20, 2025) (Required)", width=400)
-    event_desc_input = ft.TextField(label="Description", multiline=True, min_lines=2, max_lines=4, width=400)
-    
-    view_content = ft.Container(
-        content=ft.Column(
-            [
-                ft.Text("Define New Event Details", size=24, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_900),
-                ft.Divider(height=20, color=ft.colors.TRANSPARENT),
-                event_name_input,
-                event_date_input,
-                event_desc_input,
-                status_text,
-                ft.Container(height=20),
-                ft.ElevatedButton(
-                    content=ft.Text("SAVE EVENT", size=18, weight=ft.FontWeight.BOLD),
-                    bgcolor=ft.colors.GREEN_700,
-                    color=ft.colors.WHITE,
-                    on_click=save_event,
-                    width=300,
-                    height=50,
-                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-                ),
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=15
-        ),
-        padding=20,
-        expand=True
-    )
-    
-    setattr(view_content, 'status_text', status_text)
-    
-    return ft.View(
-        "/create_event",
-        [
-            create_app_bar(page, "Create New Event", show_back_button=True),
-            view_content,
-        ],
-        vertical_alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        bgcolor=ft.colors.BLUE_GREY_50
-    )
-
-
-def LoginView(page: ft.Page, open_logout_dialog):
-    """Initial Login Screen."""
-    
-    def authenticate(e):
-        global CURRENT_USER_NAME
-        # Simplified: Just check if the field is not empty
-        if username_input.value and password_input.value:
-            CURRENT_USER_NAME = "Admin User"
-            # Ensure the drawer is created immediately upon successful login
-            page.drawer = create_drawer(page, open_logout_dialog) 
-            page.go("/home")
-        else:
-            login_status.value = "Please enter mock credentials (e.g., any value in both fields)."
-            page.update()
-            
-    username_input = ft.TextField(label="Username", width=300)
-    password_input = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
-    login_status = ft.Text("")
-    
-    view_content = ft.Container(
-        content=ft.Column(
-            [
-                ft.Text("Welcome to MoScan", size=32, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_900),
-                ft.Text("Sign in to continue", size=18, color=ft.colors.BLACK54),
-                ft.Divider(height=40, color=ft.colors.TRANSPARENT),
-                username_input,
-                password_input,
-                login_status,
-                ft.Container(
-                    content=ft.Text(
-                        "where showing up is mandatory. bro.",
-                        size=12,
-                        color=ft.colors.BLACK54,
-                        text_align=ft.TextAlign.CENTER
-                    ),
-                    padding=ft.padding.only(top=10)
-                ),
-                ft.Container(height=20),
-                ft.ElevatedButton(
-                    content=ft.Text("LOGIN", size=18, weight=ft.FontWeight.BOLD),
-                    bgcolor=ft.colors.YELLOW_ACCENT_700,
-                    color=ft.colors.BLACK,
-                    on_click=authenticate,
-                    width=300,
-                    height=50,
-                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-                ),
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10
-        ),
-        alignment=ft.alignment.center,
-        expand=True
-    )
-
-    return ft.View(
-        "/",
-        [
-            view_content
-        ],
-        vertical_alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        bgcolor=ft.colors.WHITE
-    )
-
-def HomeView(page: ft.Page, db: Database):
-    """Home Screen with Event List (Now dynamically loaded from DB)."""
-    
-    events_data = db.get_all_events() # Fetch all events from DB
-
-    def create_event_card(event_id: str, event_data: dict):
-        """Generates a card for an event."""
-        return ft.Card(
-            elevation=2,
-            content=ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Column(
-                            [
-                                ft.Text(event_data['name'], size=18, weight=ft.FontWeight.W_600),
-                                ft.Text(event_data['date'], size=14, color=ft.colors.BLACK54),
-                                ft.Text(event_data['desc'], size=12, color=ft.colors.BLACK45, italic=True, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
-                            ],
-                            spacing=5,
-                            expand=True
-                        ),
-                        ft.PopupMenuButton(
-                            icon=ft.icons.MORE_VERT,
-                            items=[
-                                ft.PopupMenuItem(
-                                    content=ft.Text("View Attendance Log"),
-                                    on_click=lambda e: page.go(f"/event/{event_id}")
-                                ),
-                                ft.PopupMenuItem(
-                                    content=ft.Text("Start QR Scan Session"),
-                                    on_click=lambda e: page.go(f"/scan/{event_id}")
-                                ),
-                            ]
-                        )
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                ),
-                padding=15
-            ),
-            width=400
-        )
-
-    event_list_controls = [
-        ft.Container(
-            content=ft.Row(
-                [
-                    ft.Text("Events", size=24, weight=ft.FontWeight.BOLD),
-                    ft.IconButton(
-                        ft.icons.ADD_CIRCLE, 
-                        icon_color=ft.colors.BLUE_700, 
-                        icon_size=30, 
-                        tooltip="Create New Event",
-                        on_click=lambda e: page.go("/create_event")
-                    )
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-            ),
-            width=400,
-            padding=ft.padding.only(bottom=10)
-        )
-    ]
-    
-    if not events_data:
-        event_list_controls.append(
-             ft.Text("No events found. Click '+' to create one.", color=ft.colors.BLACK54)
-        )
-    else:
-        for event_id, event_data in events_data.items():
-            event_list_controls.append(create_event_card(event_id, event_data))
-            
-    # Placeholder for status messages (even if none are typically needed here)
-    status_text = ft.Text("", height=20)
-
-    view_content = ft.Container(
-        content=ft.Column(
-            event_list_controls + [status_text],
-            scroll=ft.ScrollMode.ADAPTIVE,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=15,
+            alignment=ft.alignment.center,
             expand=True
-        ),
-        padding=20,
-        expand=True
-    )
-    
-    setattr(view_content, 'status_text', status_text)
-
-    return ft.View(
-        "/home",
-        [
-            create_app_bar(page, "Home"),
-            view_content,
-        ],
-        vertical_alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-    )
-
-def QRScanView(page: ft.Page, db: Database, event_id: str):
-    """QR Scanning Screen (Now fetching event info from DB)."""
-    
-    event_info = db.get_event_by_id(event_id)
-    if not event_info:
-        page.go("/home")
-        return
-    
-    # Status Message Area
-    status_text_control = ft.Text("Ready to scan...", color=ft.colors.BLACK54, size=16)
-    
-    # Small log for latest scans
-    latest_scans_log = ft.Column(
-        [ft.Text("Latest scans will appear here...")],
-        scroll=ft.ScrollMode.ADAPTIVE,
-        height=150,
-        spacing=5,
-        horizontal_alignment=ft.CrossAxisAlignment.START
-    )
-
-    def load_initial_log(log_column: ft.Column):
-        """Loads recent scans from the DB into the log."""
-        attendance = db.get_attendance_by_event(event_id)
+        )
         
-        log_column.controls.clear()
-        
-        if attendance:
-            for user_id, record in list(attendance.items())[:10]: # Show up to 10 recent scans
-                # Add the controls directly to the list, do not call .update() here
-                log_column.controls.append(
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Icon(ft.icons.CHECK_CIRCLE, color=ft.colors.GREEN_700, size=20),
-                                ft.Text(f"{record['name']}", weight=ft.FontWeight.BOLD, size=14),
-                                ft.Text(f"({record['time']})", size=12, color=ft.colors.BLACK54),
-                            ],
-                            alignment=ft.MainAxisAlignment.START,
-                            spacing=10
-                        ),
-                        padding=5,
-                        border_radius=ft.border_radius.all(4),
-                        bgcolor=ft.colors.WHITE
-                    )
-                )
-        else:
-            log_column.controls.append(ft.Text("Latest scans will appear here..."))
-        
-        # NOTE: We do NOT call log_column.update() here, as the view hasn't been added to the page yet.
-        # The first render will happen when page.views.append() is called.
-        
-    def on_scan_submit(e):
-        record_attendance(page, db, qr_input.value, event_id, qr_input, latest_scans_log)
-
-    qr_input = ft.TextField(
-        label="Scan QR Code / Enter ID",
-        hint_text="e.g., E101",
-        width=300,
-        on_submit=on_scan_submit
-    )
-    
-    # --- Load initial log data BEFORE the controls are put into the view ---
-    load_initial_log(latest_scans_log)
-    # --- The controls list is now populated and ready for the view construction ---
-
-
-    view_content = ft.Container(
-        content=ft.Column(
+        return ft.View(
+            "/home",
             [
-                ft.Text(f"Scanning for: {event_info['name']}", size=24, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_900),
-                ft.Text(f"ID: {event_id}", size=14, color=ft.colors.BLACK54),
-
-                # Mock QR Code Scan Area (following the wireframe)
-                ft.Container(
-                    content=ft.Text("Mock QR Camera Feed Area", color=ft.colors.BLACK54),
-                    alignment=ft.alignment.center,
-                    width=300,
-                    height=200,
-                    bgcolor=ft.colors.BLACK12,
-                    border_radius=10,
-                    margin=ft.margin.only(top=10, bottom=20)
-                ),
-                
-                # Scan/Input Controls
-                ft.Row(
-                    [
-                        qr_input,
-                        ft.IconButton(
-                            icon=ft.icons.SEND,
-                            icon_color=ft.colors.BLUE_900,
-                            icon_size=30,
-                            tooltip="Record Attendance",
-                            on_click=on_scan_submit
-                        )
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=10
-                ),
-                
-                # Status and Quick Log
-                ft.Container(
-                    content=status_text_control,
-                    alignment=ft.alignment.center,
-                    padding=ft.padding.only(top=10, bottom=20)
-                ),
-                ft.Text("Latest Activity:", size=16, weight=ft.FontWeight.W_600),
-                ft.Container(
-                    content=latest_scans_log,
-                    width=400,
-                    bgcolor=ft.colors.BLUE_GREY_50,
-                    border_radius=10,
-                    padding=10
+                self.create_app_bar("MoScan"),
+                event_list,
+                ft.FloatingActionButton(
+                    icon=ft.Icons.ADD,
+                    on_click=lambda e: self.page.go("/create_event"),
+                    bgcolor=ft.Colors.BLUE_700,
                 )
+            ]
+        )
+
+    def create_event_view(self):
+        """Create new event screen."""
+        name_field = ft.TextField(
+            label="Event Name",
+            hint_text="Enter event name",
+            prefix_icon=ft.Icons.EVENT
+        )
+        date_field = ft.TextField(
+            label="Date",
+            hint_text="e.g., Dec 15, 2024",
+            prefix_icon=ft.Icons.CALENDAR_TODAY
+        )
+        desc_field = ft.TextField(
+            label="Description",
+            hint_text="Optional description",
+            multiline=True,
+            min_lines=3,
+            max_lines=5
+        )
+        
+        def save_event(e):
+            if name_field.value and date_field.value:
+                self.db.create_event(
+                    name_field.value,
+                    date_field.value,
+                    desc_field.value or "No description"
+                )
+                self.show_snackbar("Event created successfully!", ft.Colors.GREEN)
+                self.page.go("/home")
+            else:
+                self.show_snackbar("Name and date are required", ft.Colors.RED)
+        
+        return ft.View(
+            "/create_event",
+            [
+                self.create_app_bar("Create Event", show_back=True),
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Text(
+                                "New Event",
+                                size=28,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.BLUE_700
+                            ),
+                            ft.Container(height=20),
+                            name_field,
+                            date_field,
+                            desc_field,
+                            ft.Container(height=20),
+                            ft.ElevatedButton(
+                                "CREATE EVENT",
+                                width=300,
+                                height=50,
+                                on_click=save_event,
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.Colors.BLUE_700,
+                                    color=ft.Colors.WHITE
+                                )
+                            )
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=15
+                    ),
+                    padding=20,
+                    expand=True
+                )
+            ]
+        )
+
+    def scan_view(self, event_id: str):
+        """QR scanning screen with OpenCV camera support."""
+        event = self.db.get_event_by_id(event_id)
+        if not event:
+            self.page.go("/home")
+            return
+        
+        scan_log = ft.ListView(spacing=5, padding=10)
+        
+        # Load recent scans
+        attendance = self.db.get_attendance_by_event(event_id)
+        for user_id, record in list(attendance.items())[:10]:
+            scan_log.controls.append(
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.CHECK_CIRCLE, color=ft.Colors.GREEN),
+                    title=ft.Text(record['name']),
+                    subtitle=ft.Text(record['time']),
+                    dense=True
+                )
+            )
+        
+        # Camera and input controls
+        qr_input = ft.TextField(
+            label="Enter ID manually",
+            hint_text="e.g., E101",
+            prefix_icon=ft.Icons.QR_CODE,
+            autofocus=True,
+            expand=True
+        )
+        
+        camera_status = ft.Text(
+            "Camera: Ready",
+            size=12,
+            color=ft.Colors.GREY_600,
+            weight=ft.FontWeight.BOLD
+        )
+        
+        # Camera preview image
+        camera_image = ft.Image(
+            src_base64="",
+            width=640,
+            height=480,
+            fit=ft.ImageFit.CONTAIN,
+        )
+        
+        camera_icon = ft.Container(
+            content=ft.Icon(
+                ft.Icons.QR_CODE_SCANNER,
+                size=100,
+                color=ft.Colors.BLUE_700,
+            ),
+            alignment=ft.alignment.center,
+        )
+        
+        # Stack to show either icon or camera feed
+        camera_stack = ft.Stack(
+            [
+                camera_icon,
+                camera_image,
+            ]
+        )
+        
+        camera_container = ft.Container(
+            content=camera_stack,
+            height=300,
+            bgcolor=ft.Colors.BLUE_50,
+            border_radius=10,
+            border=ft.border.all(2, ft.Colors.BLUE_200),
+            alignment=ft.alignment.center
+        )
+        
+        camera_active = [False]
+        
+        def update_camera_frame(frame_base64: str):
+            """Update the camera preview with new frame."""
+            try:
+                camera_image.src_base64 = frame_base64
+                camera_image.visible = True
+                camera_icon.visible = False
+                camera_image.update()
+            except Exception as e:
+                print(f"Error updating frame: {e}")
+        
+        def process_scan(user_id: str):
+            """Process a scanned or entered ID."""
+            user_id = user_id.strip().upper()
+            
+            if not user_id:
+                return
+            
+            if user_id not in EMPLOYEES:
+                self.show_snackbar(f"Unknown ID: {user_id}", ft.Colors.RED)
+                return
+            
+            user_name = EMPLOYEES[user_id]
+            existing = self.db.is_user_checked_in(event_id, user_id)
+            
+            if existing:
+                self.show_snackbar(f"{user_name} already checked in at {existing}", ft.Colors.ORANGE)
+                return
+            
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            self.db.record_attendance(event_id, user_id, user_name, timestamp)
+            
+            # Update UI
+            scan_log.controls.insert(0, ft.ListTile(
+                leading=ft.Icon(ft.Icons.CHECK_CIRCLE, color=ft.Colors.GREEN),
+                title=ft.Text(user_name),
+                subtitle=ft.Text(timestamp),
+                dense=True
+            ))
+            
+            try:
+                scan_log.update()
+            except:
+                pass
+            
+            self.show_snackbar(f"✓ {user_name} checked in!", ft.Colors.GREEN)
+        
+        def on_qr_detected(qr_data: str):
+            """Callback when QR code is detected by camera."""
+            process_scan(qr_data)
+        
+        def handle_manual_scan(e):
+            """Handle manual ID entry."""
+            user_id = qr_input.value
+            qr_input.value = ""
+            qr_input.update()
+            process_scan(user_id)
+        
+        def toggle_camera(e):
+            """Toggle camera on/off."""
+            camera_active[0] = not camera_active[0]
+            
+            if camera_active[0]:
+                # Start camera
+                camera_btn.icon = ft.Icons.STOP_CIRCLE
+                camera_btn.bgcolor = ft.Colors.RED_700
+                camera_btn.tooltip = "Stop Camera"
+                camera_status.value = "Camera: Scanning..."
+                camera_status.color = ft.Colors.GREEN_700
+                camera_container.bgcolor = ft.Colors.BLACK
+                camera_container.border = ft.border.all(2, ft.Colors.GREEN_400)
+                
+                # Show camera feed, hide icon
+                camera_image.visible = True
+                camera_icon.visible = False
+                
+                # Initialize and start scanner
+                self.qr_scanner = QRCameraScanner(on_qr_detected, update_camera_frame)
+                self.qr_scanner.start()
+                
+            else:
+                # Stop camera
+                camera_btn.icon = ft.Icons.VIDEOCAM
+                camera_btn.bgcolor = ft.Colors.BLUE_700
+                camera_btn.tooltip = "Start Camera"
+                camera_status.value = "Camera: Stopped"
+                camera_status.color = ft.Colors.GREY_600
+                camera_container.bgcolor = ft.Colors.BLUE_50
+                camera_container.border = ft.border.all(2, ft.Colors.BLUE_200)
+                
+                # Show icon, hide camera feed
+                camera_image.visible = False
+                camera_icon.visible = True
+                
+                if self.qr_scanner:
+                    self.qr_scanner.stop()
+            
+            camera_btn.update()
+            camera_status.update()
+            camera_container.update()
+            camera_icon.update()
+            camera_image.update()
+        
+        qr_input.on_submit = handle_manual_scan
+        
+        camera_btn = ft.IconButton(
+            icon=ft.Icons.VIDEOCAM,
+            icon_color=ft.Colors.WHITE,
+            bgcolor=ft.Colors.BLUE_700,
+            tooltip="Start Camera",
+            on_click=toggle_camera
+        )
+        
+        return ft.View(
+            f"/scan/{event_id}",
+            [
+                self.create_app_bar(event['name'], show_back=True),
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            camera_container,
+                            camera_status,
+                            ft.Row(
+                                [
+                                    qr_input,
+                                    camera_btn,
+                                    ft.IconButton(
+                                        icon=ft.Icons.SEND,
+                                        icon_color=ft.Colors.WHITE,
+                                        bgcolor=ft.Colors.BLUE_700,
+                                        on_click=handle_manual_scan
+                                    )
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER
+                            ),
+                            ft.Divider(),
+                            ft.Text("Recent Activity", weight=ft.FontWeight.BOLD),
+                            ft.Container(
+                                content=scan_log,
+                                height=200,
+                                border=ft.border.all(1, ft.Colors.GREY_300),
+                                border_radius=10
+                            )
+                        ],
+                        spacing=15
+                    ),
+                    padding=20,
+                    expand=True,
+                    scroll=ft.ScrollMode.AUTO
+                )
+            ]
+        )
+
+    def event_detail_view(self, event_id: str):
+        """Event detail with attendance log."""
+        event = self.db.get_event_by_id(event_id)
+        if not event:
+            self.page.go("/home")
+            return
+        
+        attendance = self.db.get_attendance_by_event(event_id)
+        
+        attendance_table = ft.DataTable(
+            columns=[
+                ft.DataColumn(ft.Text("Name", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("ID", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Time", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Status", weight=ft.FontWeight.BOLD)),
             ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=15
-        ),
-        padding=20,
-        expand=True
-    )
-    
-    # Attach status_text to the view_content object for the helper function
-    setattr(view_content, 'status_text', status_text_control) 
-    
-    return ft.View(
-        f"/scan/{event_id}",
-        [
-            create_app_bar(page, event_info['name'], show_back_button=True),
-            view_content,
-        ],
-        vertical_alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-    )
-
-def EventDetailView(page: ft.Page, db: Database, event_id: str):
-    """Event Detail View with Attendance Log (Now fetching data from DB)."""
-    
-    event_info = db.get_event_by_id(event_id)
-    if not event_info:
-        page.go("/home")
-        return
-
-    # Fetch attendance from DB
-    attendance_data = db.get_attendance_by_event(event_id)
-    
-    # Attendance Table Setup
-    attendance_rows = []
-    
-    # Populate rows
-    if attendance_data:
-        for user_id, record in attendance_data.items():
-            attendance_rows.append(
+            rows=[
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(record['name'])),
                         ft.DataCell(ft.Text(user_id)),
                         ft.DataCell(ft.Text(record['time'])),
-                        ft.DataCell(ft.Text(record['status'], color=ft.colors.GREEN_700)),
+                        ft.DataCell(ft.Text(record['status'], color=ft.Colors.GREEN)),
                     ]
-                )
-            )
-    else:
-        # Placeholder row if no attendance recorded
-         attendance_rows.append(
-            ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text("No records yet.")),
+                ) for user_id, record in attendance.items()
+            ] if attendance else [
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text("No attendance records yet", italic=True)),
                     ft.DataCell(ft.Text("")),
                     ft.DataCell(ft.Text("")),
                     ft.DataCell(ft.Text("")),
-                ]
-            )
+                ])
+            ]
         )
-
-    attendance_table = ft.DataTable(
-        columns=[
-            ft.DataColumn(ft.Text("Name")),
-            ft.DataColumn(ft.Text("ID")),
-            ft.DataColumn(ft.Text("Time")),
-            ft.DataColumn(ft.Text("Status")),
-        ],
-        rows=attendance_rows,
-        width=500,
-    )
-    
-    # Status Message Area (for updates like export)
-    status_text_control = ft.Text("", height=20, color=ft.colors.BLACK54, size=16)
-
-    # Export Button (Mock)
-    export_button = ft.ElevatedButton(
-        content=ft.Row([
-            ft.Icon(ft.icons.FILE_DOWNLOAD),
-            ft.Text("Export File", weight=ft.FontWeight.BOLD)
-        ]),
-        bgcolor=ft.colors.BLUE_700,
-        color=ft.colors.WHITE,
-        on_click=lambda e: update_status(page, f"Exporting {len(attendance_data)} attendance records...", ft.colors.BLUE_900),
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))
-    )
-    
-
-    view_content = ft.Container(
-        content=ft.Column(
+        
+        def export_data(e):
+            self.show_snackbar(f"Exporting {len(attendance)} records...", ft.Colors.BLUE)
+        
+        return ft.View(
+            f"/event/{event_id}",
             [
-                ft.Text(event_info['name'], size=30, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_900),
-                ft.Text(event_info['date'], size=18, color=ft.colors.BLACK87),
-                
-                # Mock Search/Filter Bar
-                ft.Row(
-                    [
-                        ft.TextField(hint_text="Search Name/Section", expand=True),
-                        ft.IconButton(ft.icons.FILTER_ALT)
-                    ],
-                    width=500,
-                    spacing=10
-                ),
-                
-                # Attendance List/Table
+                self.create_app_bar(event['name'], show_back=True),
                 ft.Container(
                     content=ft.Column(
                         [
-                            ft.Text(f"Sign-in Sheet (Total: {len(attendance_data)} attendees)", weight=ft.FontWeight.W_600, size=16),
-                            ft.ResponsiveRow([
-                                ft.Container(
-                                    content=attendance_table, 
-                                    col={"xs": 12, "md": 12}, 
-                                    # Ensure table expands responsively
+                            ft.Text(
+                                event['name'],
+                                size=24,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.BLUE_700
+                            ),
+                            ft.Text(event['date'], size=16, color=ft.Colors.GREY_700),
+                            ft.Divider(),
+                            ft.Text(
+                                f"Total Attendees: {len(attendance)}",
+                                size=18,
+                                weight=ft.FontWeight.BOLD
+                            ),
+                            ft.Container(
+                                content=ft.Column(
+                                    [attendance_table],
+                                    scroll=ft.ScrollMode.AUTO
+                                ),
+                                border=ft.border.all(1, ft.Colors.GREY_300),
+                                border_radius=10,
+                                padding=10,
+                                expand=True
+                            ),
+                            ft.ElevatedButton(
+                                "Export to CSV",
+                                icon=ft.Icons.DOWNLOAD,
+                                on_click=export_data,
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.Colors.BLUE_700,
+                                    color=ft.Colors.WHITE
                                 )
-                            ])
-
+                            )
                         ],
-                        horizontal_alignment=ft.CrossAxisAlignment.START,
-                        scroll=ft.ScrollMode.ADAPTIVE,
-                        expand=True
+                        spacing=15
                     ),
-                    padding=ft.padding.all(10),
-                    margin=ft.margin.only(top=10),
-                    bgcolor=ft.colors.WHITE,
-                    border_radius=10,
+                    padding=20,
                     expand=True
-                ),
-                
-                # Bottom Actions
-                ft.Row([export_button], alignment=ft.MainAxisAlignment.CENTER, width=500),
-                ft.Container(content=status_text_control, alignment=ft.alignment.center)
-
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=15,
-            expand=True
-        ),
-        padding=20,
-        expand=True
-    )
-    
-    # Attach status_text to the view_content object for the helper function
-    setattr(view_content, 'status_text', status_text_control)
-
-    return ft.View(
-        f"/event/{event_id}",
-        [
-            create_app_bar(page, event_info['name'], show_back_button=True),
-            view_content,
-        ],
-        vertical_alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-    )
-
-# --- MENU AND LOGOUT FUNCTIONS ---
-
-def perform_logout(page: ft.Page):
-    """The actual logic to perform logout and navigation."""
-    global CURRENT_USER_NAME
-    CURRENT_USER_NAME = None
-    # Ensure the dialog is closed if it somehow didn't close
-    if page.dialog:
-        page.dialog.open = False
-    page.drawer = None # Clear the drawer on logout
-    page.go("/")
-    page.update()
-
-def open_logout_dialog(e, page: ft.Page):
-    """Shows a confirmation dialog before logging out."""
-    
-    def close_dialog(e):
-        page.dialog.open = False
-        page.update()
-        
-    def confirm_and_logout(e):
-        # Close the dialog UI before performing the actual logout navigation
-        close_dialog(e) 
-        perform_logout(page)
-        
-    page.dialog = ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Confirm Logout"),
-        content=ft.Text("Are you sure you want to sign out of MoScan?"),
-        actions=[
-            ft.TextButton(
-                "Cancel", 
-                on_click=close_dialog,
-                style=ft.ButtonStyle(color=ft.colors.BLACK54)
-            ),
-            ft.TextButton(
-                "Logout", 
-                on_click=confirm_and_logout,
-                style=ft.ButtonStyle(color=ft.colors.RED_600, weight=ft.FontWeight.BOLD)
-            ),
-        ],
-        actions_alignment=ft.MainAxisAlignment.END,
-        on_dismiss=lambda e: page.update(),
-    )
-    
-    page.dialog.open = True
-    page.update()
-
-def create_drawer(page: ft.Page, logout_handler):
-    """Creates the navigation drawer (menu) content, dynamically setting the user name."""
-    user_name = CURRENT_USER_NAME if CURRENT_USER_NAME else 'Admin'
-    return ft.NavigationDrawer(
-        # Always close the drawer when a menu item is clicked
-        on_dismiss=lambda e: page.update(), 
-        controls=[
-            ft.Container(height=10),
-            ft.Container(
-                content=ft.Text(
-                    f"Welcome, {user_name}!", 
-                    size=20, 
-                    weight=ft.FontWeight.BOLD
-                ),
-                padding=ft.padding.only(left=20)
-            ),
-            ft.Divider(),
-            ft.ListTile(
-                title=ft.Text("Home", weight=ft.FontWeight.BOLD),
-                leading=ft.Icon(ft.icons.HOME),
-                on_click=lambda e: (setattr(page.drawer, 'open', False), page.go("/home"), page.update()),
-            ),
-            ft.ListTile(
-                title=ft.Text("Logout", weight=ft.FontWeight.BOLD),
-                leading=ft.Icon(ft.icons.LOGOUT),
-                on_click=lambda e: (setattr(page.drawer, 'open', False), page.update(), logout_handler(e, page)),
-            ),
-        ]
-    )
+                )
+            ]
+        )
 
 
-# --- MAIN APPLICATION LOGIC ---
-
-# Global database instance
-db = Database()
-
+# --- MAIN ---
 def main(page: ft.Page):
-    """
-    The main entry point for the Flet application, setting up routing and navigation.
-    """
-    page.title = "MoScan Attendance"
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.theme_mode = ft.ThemeMode.LIGHT
-    page.bgcolor = ft.colors.BLUE_GREY_50
-    page.padding = 0
-    
-    page.window_height = 800
-    page.window_width = 500
-    
-    # Drawer setup (can be recreated on login/logout)
-    # The drawer is now created explicitly in LoginView.authenticate or in route_change.
+    app = MoScanApp(page)
 
-    def route_change(route):
-        """Handles navigation when the route changes."""
-        page.views.clear()
-        
-        # Ensure the drawer exists if the user is authenticated
-        if CURRENT_USER_NAME and page.drawer is None:
-            page.drawer = create_drawer(page, open_logout_dialog)
-
-        # Default/Login View
-        if page.route == "/":
-            page.views.append(LoginView(page, open_logout_dialog))
-        
-        # Create Event View
-        elif page.route == "/create_event":
-            if not CURRENT_USER_NAME: page.go("/"); return
-            page.views.append(CreateEventView(page, db))
-            
-        # Home View
-        elif page.route == "/home":
-            if not CURRENT_USER_NAME:
-                page.go("/")
-                return
-            page.views.append(HomeView(page, db))
-        
-        # Event Detail View
-        elif page.route.startswith("/event/"):
-            if not CURRENT_USER_NAME: page.go("/"); return
-            event_id = page.route.split("/")[-1]
-            page.views.append(EventDetailView(page, db, event_id))
-
-        # QR Scan View
-        elif page.route.startswith("/scan/"):
-            if not CURRENT_USER_NAME: page.go("/"); return
-            event_id = page.route.split("/")[-1]
-            page.views.append(QRScanView(page, db, event_id))
-            
-        page.update()
-
-    def view_pop(view):
-        """Handles back button functionality."""
-        if len(page.views) > 1:
-            page.views.pop()
-            top_view = page.views[-1]
-            page.go(top_view.route)
-
-    page.on_route_change = route_change
-    page.on_view_pop = view_pop
-    
-    # Initial route setup
-    if not CURRENT_USER_NAME:
-        page.go("/")
-    else:
-        page.go("/home")
-
-    page.update()
-
-# Run the application in web mode, binding to all interfaces for mobile access
 if __name__ == "__main__":
-    # IMPORTANT: host="0.0.0.0" is required for external devices (like your phone) 
-    # to access the app using your computer's local IP address.
-    ft.app(target=main, view=ft.WEB_BROWSER, port=8000, host="192.168.254.113")
+    ft.app(target=main, port=8000, host="0.0.0.0")
