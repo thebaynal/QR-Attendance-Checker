@@ -73,8 +73,30 @@ class Database:
             FOREIGN KEY (event_id) REFERENCES events(id)
         )
         """
+        
+        users_table_sql = """
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+        
         self._execute(event_table_sql)
         self._execute(attendance_table_sql)
+        self._execute(users_table_sql)
+        
+        # Create default admin user if no users exist
+        check_users = "SELECT COUNT(*) FROM users"
+        result = self._execute(check_users, fetch_one=True)
+        if result and result[0] == 0:
+            # Create default admin account (username: admin, password: admin123)
+            default_user = """
+            INSERT INTO users (username, password, full_name, created_at) 
+            VALUES (?, ?, ?, ?)
+            """
+            self._execute(default_user, ('admin', 'admin123', 'Administrator', datetime.now().isoformat()))
 
     def get_all_events(self) -> Dict:
         """Fetch all events."""
@@ -123,6 +145,21 @@ class Database:
         event_query = "DELETE FROM events WHERE id = ?"
         result = self._execute(event_query, (event_id,))
         return result is not None
+
+    def authenticate_user(self, username: str, password: str) -> Optional[str]:
+        """Authenticate a user and return their full name if successful."""
+        query = "SELECT full_name FROM users WHERE username = ? AND password = ?"
+        result = self._execute(query, (username, password), fetch_one=True)
+        return result[0] if result else None
+    
+    def create_user(self, username: str, password: str, full_name: str) -> bool:
+        """Create a new user account."""
+        query = "INSERT INTO users (username, password, full_name, created_at) VALUES (?, ?, ?, ?)"
+        try:
+            self._execute(query, (username, password, full_name, datetime.now().isoformat()))
+            return True
+        except sqlite3.IntegrityError:
+            return False  # Username already exists
 
     def record_attendance(self, event_id: str, user_id: str, user_name: str, 
                          timestamp: str, status: str = "Checked In"):
@@ -458,12 +495,42 @@ class MoScanApp:
             prefix_icon=ft.Icons.LOCK
         )
         
+        error_text = ft.Text(
+            "",
+            color=ft.Colors.RED,
+            size=12,
+            visible=False
+        )
+        
         def authenticate(e):
-            if username.value and password.value:
-                self.current_user = "Admin User"
+            # Clear previous error
+            error_text.visible = False
+            error_text.update()
+            
+            # Validate inputs
+            if not username.value or not password.value:
+                error_text.value = "Please enter both username and password"
+                error_text.visible = True
+                error_text.update()
+                return
+            
+            # Authenticate against database
+            user_name = self.db.authenticate_user(username.value.strip(), password.value)
+            
+            if user_name:
+                self.current_user = user_name
+                self.show_snackbar(f"Welcome, {user_name}!", ft.Colors.GREEN)
                 self.page.go("/home")
             else:
-                self.show_snackbar("Please enter credentials", ft.Colors.RED)
+                error_text.value = "Invalid username or password"
+                error_text.visible = True
+                error_text.update()
+                password.value = ""
+                password.update()
+        
+        # Allow Enter key to submit
+        username.on_submit = authenticate
+        password.on_submit = authenticate
         
         return ft.View(
             "/",
@@ -490,7 +557,8 @@ class MoScanApp:
                             ft.Container(height=40),
                             username,
                             password,
-                            ft.Container(height=20),
+                            error_text,
+                            ft.Container(height=10),
                             ft.ElevatedButton(
                                 "LOGIN",
                                 width=300,
@@ -502,6 +570,35 @@ class MoScanApp:
                                 )
                             ),
                             ft.Container(height=20),
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.Text(
+                                            "Default Login:",
+                                            size=12,
+                                            color=ft.Colors.GREY_600,
+                                            weight=ft.FontWeight.BOLD
+                                        ),
+                                        ft.Text(
+                                            "Username: admin",
+                                            size=11,
+                                            color=ft.Colors.GREY_500
+                                        ),
+                                        ft.Text(
+                                            "Password: admin123",
+                                            size=11,
+                                            color=ft.Colors.GREY_500
+                                        ),
+                                    ],
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=2
+                                ),
+                                padding=10,
+                                border=ft.border.all(1, ft.Colors.GREY_300),
+                                border_radius=5,
+                                bgcolor=ft.Colors.GREY_50
+                            ),
+                            ft.Container(height=10),
                             ft.Text(
                                 "where showing up is mandatory. bro.",
                                 size=12,
@@ -789,11 +886,16 @@ class MoScanApp:
         
         def update_camera_frame(frame_base64: str):
             """Update the camera preview with new frame."""
+            if not camera_active[0]:
+                return
+            
             try:
-                camera_image.src_base64 = frame_base64
-                camera_image.visible = True
-                camera_icon.visible = False
-                camera_image.update()
+                if frame_base64 and len(frame_base64) > 0:
+                    camera_image.src_base64 = frame_base64
+                    camera_image.visible = True
+                    camera_icon.visible = False
+                    camera_image.update()
+                    camera_icon.update()
             except Exception as e:
                 print(f"Error updating frame: {e}")
         
@@ -853,18 +955,37 @@ class MoScanApp:
                 camera_btn.icon = ft.Icons.STOP_CIRCLE
                 camera_btn.bgcolor = ft.Colors.RED_700
                 camera_btn.tooltip = "Stop Camera"
-                camera_status.value = "Camera: Scanning..."
-                camera_status.color = ft.Colors.GREEN_700
+                camera_status.value = "Camera: Starting..."
+                camera_status.color = ft.Colors.ORANGE_700
                 camera_container.bgcolor = ft.Colors.BLACK
                 camera_container.border = ft.border.all(2, ft.Colors.GREEN_400)
                 
-                # Show camera feed, hide icon
-                camera_image.visible = True
-                camera_icon.visible = False
+                # Keep icon visible until first frame arrives
+                camera_image.visible = False
+                camera_icon.visible = True
+                camera_icon.content.color = ft.Colors.ORANGE_700
                 
-                # Initialize and start scanner
+                camera_btn.update()
+                camera_status.update()
+                camera_container.update()
+                camera_icon.update()
+                
+                # Initialize and start scanner (this will update frames)
                 self.qr_scanner = QRCameraScanner(on_qr_detected, update_camera_frame)
                 self.qr_scanner.start()
+                
+                # Update status after a moment
+                def update_status():
+                    time.sleep(0.5)
+                    if camera_active[0]:
+                        try:
+                            camera_status.value = "Camera: Scanning..."
+                            camera_status.color = ft.Colors.GREEN_700
+                            camera_status.update()
+                        except:
+                            pass
+                
+                threading.Thread(target=update_status, daemon=True).start()
                 
             else:
                 # Stop camera
@@ -879,15 +1000,16 @@ class MoScanApp:
                 # Show icon, hide camera feed
                 camera_image.visible = False
                 camera_icon.visible = True
+                camera_icon.content.color = ft.Colors.BLUE_700
                 
                 if self.qr_scanner:
                     self.qr_scanner.stop()
             
-            camera_btn.update()
-            camera_status.update()
-            camera_container.update()
-            camera_icon.update()
-            camera_image.update()
+                camera_btn.update()
+                camera_status.update()
+                camera_container.update()
+                camera_icon.update()
+                camera_image.update()
         
         qr_input.on_submit = handle_manual_scan
         
