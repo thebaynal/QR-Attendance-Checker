@@ -1,11 +1,12 @@
-import pytest
+import unittest
 
 from qrcode import util
 
 
-def test_check_wrong_version():
-    with pytest.raises(ValueError):
-        util.check_version(0)
+class UtilTests(unittest.TestCase):
+    def test_check_wrong_version(self):
+        with self.assertRaises(ValueError):
+            util.check_version(0)
 
-    with pytest.raises(ValueError):
-        util.check_version(41)
+        with self.assertRaises(ValueError):
+            util.check_version(41)
