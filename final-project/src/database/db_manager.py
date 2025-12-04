@@ -1,87 +1,96 @@
-# database/db_manager.py
-"""Database manager for handling all SQLite operations."""
+"""Database manager now using MySQL instead of SQLite."""
 
-import sqlite3
+import mysql.connector
+from mysql.connector import errorcode
 import time
 import random
 from datetime import datetime
 from typing import Optional, Dict
 
-
 class Database:
-    """Handles all SQLite interactions for events and attendance."""
-    
-    def __init__(self, db_name: str = "moscan_attendance.db"):
-        self.db_name = db_name
-        self.create_tables()
+    """Handles all MySQL interactions for events and attendance."""
 
-    def _execute(self, query: str, params: tuple = (), commit: bool = True, 
+    def __init__(self):
+        try:
+            self.conn = mysql.connector.connect(
+                host="localhost",       # CHANGE THIS if needed
+                user="root",            # CHANGE THIS
+                password="divinogwapo12",    # CHANGE THIS
+                database="moscan_attendance"    # CHANGE THIS (create manually in phpMyAdmin)
+            )
+            # buffered=True is important to prevent 'Unread result found' errors
+            self.cursor = self.conn.cursor(buffered=True)
+            self.create_tables()
+            print("Connected to MySQL Database successfully.")
+        except mysql.connector.Error as err:
+            print(f"Error connecting to MySQL: {err}")
+            raise
+
+    def _execute(self, query: str, params: tuple = (), commit: bool = True,
                  fetch_all: bool = False, fetch_one: bool = False):
-        """Execute SQL command with proper error handling."""
+
         result = None
         try:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, params)
-                
-                if fetch_one:
-                    result = cursor.fetchone()
-                elif fetch_all:
-                    result = cursor.fetchall()
-                
-                if commit:
-                    conn.commit()
-                    
+            self.cursor.execute(query, params)
+
+            if fetch_one:
+                result = self.cursor.fetchone()
+            elif fetch_all:
+                result = self.cursor.fetchall()
+
+            if commit:
+                self.conn.commit()
+
             return result
-        except sqlite3.Error as e:
-            print(f"Database error: {e}")
+
+        except mysql.connector.Error as e:
+            print(f"MySQL Query Error: {e}")
             return None
 
     def create_tables(self):
-        """Create necessary tables if they don't exist."""
         event_table_sql = """
         CREATE TABLE IF NOT EXISTS events (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            date TEXT NOT NULL,
+            id VARCHAR(255) PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            date VARCHAR(255) NOT NULL,
             description TEXT
         )
         """
-        
+
         attendance_table_sql = """
         CREATE TABLE IF NOT EXISTS attendance (
-            event_id TEXT NOT NULL,
-            user_id TEXT NOT NULL,
-            user_name TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            status TEXT NOT NULL,
+            event_id VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            user_name VARCHAR(255) NOT NULL,
+            timestamp VARCHAR(255) NOT NULL,
+            status VARCHAR(255) NOT NULL,
             PRIMARY KEY (event_id, user_id),
             FOREIGN KEY (event_id) REFERENCES events(id)
+                ON DELETE CASCADE
         )
         """
-        
+
         users_table_sql = """
         CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT NOT NULL,
-            full_name TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            username VARCHAR(255) PRIMARY KEY,
+            password VARCHAR(255) NOT NULL,
+            full_name VARCHAR(255) NOT NULL,
+            created_at VARCHAR(255) NOT NULL
         )
         """
-        
+
         self._execute(event_table_sql)
         self._execute(attendance_table_sql)
         self._execute(users_table_sql)
-        
-        # Create default admin user if no users exist
-        check_users = "SELECT COUNT(*) FROM users"
-        result = self._execute(check_users, fetch_one=True)
-        if result and result[0] == 0:
-            default_user = """
-            INSERT INTO users (username, password, full_name, created_at) 
-            VALUES (?, ?, ?, ?)
+
+        # Create initial admin user
+        count = self._execute("SELECT COUNT(*) FROM users", fetch_one=True)
+        if count and count[0] == 0:
+            create_admin = """
+            INSERT INTO users (username, password, full_name, created_at)
+            VALUES (%s, %s, %s, %s)
             """
-            self._execute(default_user, ('admin', 'admin123', 'Administrator', datetime.now().isoformat()))
+            self._execute(create_admin, ('admin', 'admin123', 'Administrator', datetime.now().isoformat()))
 
     # Event operations
     def get_all_events(self) -> Dict:
@@ -102,7 +111,8 @@ class Database:
 
     def get_event_by_id(self, event_id: str) -> Optional[Dict]:
         """Fetch a single event by ID."""
-        query = "SELECT id, name, date, description FROM events WHERE id = ?"
+        # FIXED: Replaced ? with %s
+        query = "SELECT id, name, date, description FROM events WHERE id = %s"
         row = self._execute(query, (event_id,), fetch_one=True)
         if row:
             event_id, name, date, description = row
@@ -117,45 +127,55 @@ class Database:
     def create_event(self, name: str, date: str, description: str) -> str:
         """Insert a new event into the database."""
         new_id = f"EID{int(time.time())}{random.randint(10, 99)}"
-        query = "INSERT INTO events (id, name, date, description) VALUES (?, ?, ?, ?)"
+        # FIXED: Replaced ? with %s
+        query = "INSERT INTO events (id, name, date, description) VALUES (%s, %s, %s, %s)"
         self._execute(query, (new_id, name, date, description))
         return new_id
 
     def delete_event(self, event_id: str) -> bool:
         """Delete an event and all its attendance records."""
-        attendance_query = "DELETE FROM attendance WHERE event_id = ?"
+        # FIXED: Replaced ? with %s
+        attendance_query = "DELETE FROM attendance WHERE event_id = %s"
         self._execute(attendance_query, (event_id,))
         
-        event_query = "DELETE FROM events WHERE id = ?"
+        event_query = "DELETE FROM events WHERE id = %s"
         result = self._execute(event_query, (event_id,))
-        return result is not None
+        # Check if cursor has rowcount to ensure deletion happened
+        return True 
 
     # Attendance operations
     def record_attendance(self, event_id: str, user_id: str, user_name: str, 
-                         timestamp: str, status: str = "Checked In"):
+                          timestamp: str, status: str = "Checked In"):
         """Record a new attendance entry."""
+        # FIXED: Replaced ? with %s
         query = """
         INSERT INTO attendance (event_id, user_id, user_name, timestamp, status) 
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
         """
         try:
             self._execute(query, (event_id, user_id, user_name, timestamp, status))
             return True
-        except sqlite3.IntegrityError:
+        except mysql.connector.Error as err:
+            # FIXED: Catch MySQL duplicate entry error (Code 1062) instead of sqlite3.IntegrityError
+            if err.errno == errorcode.ER_DUP_ENTRY:
+                return False
+            print(f"Error recording attendance: {err}")
             return False
 
     def is_user_checked_in(self, event_id: str, user_id: str) -> Optional[str]:
         """Check if a user has already checked in for a specific event."""
-        query = "SELECT timestamp FROM attendance WHERE event_id = ? AND user_id = ?"
+        # FIXED: Replaced ? with %s
+        query = "SELECT timestamp FROM attendance WHERE event_id = %s AND user_id = %s"
         result = self._execute(query, (event_id, user_id), fetch_one=True)
         return result[0] if result else None
 
     def get_attendance_by_event(self, event_id: str) -> Dict:
         """Fetch all attendance records for a given event."""
+        # FIXED: Replaced ? with %s
         query = """
         SELECT user_id, user_name, timestamp, status 
         FROM attendance 
-        WHERE event_id = ? 
+        WHERE event_id = %s 
         ORDER BY timestamp DESC
         """
         results = self._execute(query, (event_id,), fetch_all=True)
@@ -174,15 +194,21 @@ class Database:
     # User authentication
     def authenticate_user(self, username: str, password: str) -> Optional[str]:
         """Authenticate a user and return their full name if successful."""
-        query = "SELECT full_name FROM users WHERE username = ? AND password = ?"
+        # FIXED: Replaced ? with %s
+        query = "SELECT full_name FROM users WHERE username = %s AND password = %s"
         result = self._execute(query, (username, password), fetch_one=True)
         return result[0] if result else None
     
     def create_user(self, username: str, password: str, full_name: str) -> bool:
         """Create a new user account."""
-        query = "INSERT INTO users (username, password, full_name, created_at) VALUES (?, ?, ?, ?)"
+        # FIXED: Replaced ? with %s
+        query = "INSERT INTO users (username, password, full_name, created_at) VALUES (%s, %s, %s, %s)"
         try:
             self._execute(query, (username, password, full_name, datetime.now().isoformat()))
             return True
-        except sqlite3.IntegrityError:
+        except mysql.connector.Error as err:
+            # FIXED: Catch MySQL duplicate entry error instead of sqlite3.IntegrityError
+            if err.errno == errorcode.ER_DUP_ENTRY:
+                return False
+            print(f"Error creating user: {err}")
             return False

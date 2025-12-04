@@ -17,7 +17,7 @@ class MoScanApp:
     
     def __init__(self, page: ft.Page):
         self.page = page
-        self.db = Database(DATABASE_NAME)
+        self.db = Database()
         self.current_user = None
         self.drawer = None
         self.qr_scanner = None

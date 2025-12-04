@@ -68,6 +68,7 @@ class LoginView(BaseView):
                 ft.Container(
                     content=ft.Column(
                         [
+                            ft.Container(height=20),
                             ft.Icon(
                                 ft.Icons.QR_CODE_SCANNER,
                                 size=80,
@@ -143,5 +144,6 @@ class LoginView(BaseView):
                     expand=True
                 )
             ],
-            bgcolor=ft.Colors.WHITE
+            bgcolor=ft.Colors.WHITE,
+            vertical_alignment=ft.MainAxisAlignment.CENTER
         )
