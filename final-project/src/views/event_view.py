@@ -3,6 +3,7 @@
 
 import flet as ft
 from views.base_view import BaseView
+from config.constants import PRIMARY_COLOR
 
 
 class EventView(BaseView):
@@ -68,7 +69,7 @@ class EventView(BaseView):
                                 event['name'],
                                 size=24,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLUE_700
+                                color=PRIMARY_COLOR
                             ),
                             ft.Text(event['date'], size=16, color=ft.Colors.GREY_700),
                             ft.Divider(),
@@ -92,7 +93,7 @@ class EventView(BaseView):
                                 icon=ft.Icons.DOWNLOAD,
                                 on_click=export_data,
                                 style=ft.ButtonStyle(
-                                    bgcolor=ft.Colors.BLUE_700,
+                                    bgcolor=PRIMARY_COLOR,
                                     color=ft.Colors.WHITE
                                 )
                             )

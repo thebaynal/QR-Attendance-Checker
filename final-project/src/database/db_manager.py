@@ -11,9 +11,22 @@ from typing import Optional, Dict
 class Database:
     """Handles all SQLite interactions for events and attendance."""
     
-    def __init__(self, db_name: str = "moscan_attendance.db"):
+    def __init__(self, db_name: str = "mascan_attendance.db"):
         self.db_name = db_name
         self.create_tables()
+        self._ensure_admin_role()
+    
+    def _ensure_admin_role(self):
+        """Ensure the admin user has the correct role."""
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                # Force update admin user's role to 'admin'
+                cursor.execute("UPDATE users SET role = 'admin' WHERE username = 'admin'")
+                conn.commit()
+                print("Ensured admin user has 'admin' role")
+        except sqlite3.Error as e:
+            print(f"Error ensuring admin role: {e}")
 
     def _execute(self, query: str, params: tuple = (), commit: bool = True, 
                  fetch_all: bool = False, fetch_one: bool = False):
@@ -36,6 +49,22 @@ class Database:
         except sqlite3.Error as e:
             print(f"Database error: {e}")
             return None
+
+    def _add_column_if_not_exists(self, table: str, column: str, column_type: str):
+        """Add a column to a table if it doesn't already exist."""
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                # Check if column exists
+                cursor.execute(f"PRAGMA table_info({table})")
+                columns = [col[1] for col in cursor.fetchall()]
+                
+                if column not in columns:
+                    print(f"Adding column '{column}' to table '{table}'")
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+                    conn.commit()
+        except sqlite3.Error as e:
+            print(f"Database error adding column: {e}")
 
     def create_tables(self):
         """Create necessary tables if they don't exist."""
@@ -65,6 +94,7 @@ class Database:
             username TEXT PRIMARY KEY,
             password TEXT NOT NULL,
             full_name TEXT NOT NULL,
+            role TEXT DEFAULT 'scanner',
             created_at TEXT NOT NULL
         )
         """
@@ -73,15 +103,41 @@ class Database:
         self._execute(attendance_table_sql)
         self._execute(users_table_sql)
         
-        # Create default admin user if no users exist
-        check_users = "SELECT COUNT(*) FROM users"
-        result = self._execute(check_users, fetch_one=True)
-        if result and result[0] == 0:
-            default_user = """
-            INSERT INTO users (username, password, full_name, created_at) 
-            VALUES (?, ?, ?, ?)
-            """
-            self._execute(default_user, ('admin', 'admin123', 'Administrator', datetime.now().isoformat()))
+        # Add role column to users table if it doesn't exist (migration)
+        self._add_column_if_not_exists('users', 'role', "TEXT DEFAULT 'scanner'")
+        self._add_column_if_not_exists('users', 'created_at', "TEXT DEFAULT ''")
+        
+        # Ensure admin user exists and has correct role
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                
+                # Check if admin exists
+                cursor.execute("SELECT username, role FROM users WHERE username = 'admin'")
+                admin_row = cursor.fetchone()
+                
+                if admin_row:
+                    username, current_role = admin_row
+                    print(f"Admin user found with role: {current_role}")
+                    
+                    # Update role to 'admin' if it's not already
+                    if current_role != 'admin':
+                        cursor.execute("UPDATE users SET role = 'admin' WHERE username = 'admin'")
+                        conn.commit()
+                        print("Admin user role updated to 'admin'")
+                    else:
+                        print("Admin user already has 'admin' role")
+                else:
+                    # Create admin user
+                    print("Creating default admin user")
+                    cursor.execute(
+                        "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
+                        ('admin', 'admin123', 'Administrator', 'admin', datetime.now().isoformat())
+                    )
+                    conn.commit()
+                    print("Default admin user created")
+        except sqlite3.Error as e:
+            print(f"Error ensuring admin user: {e}")
 
     # Event operations
     def get_all_events(self) -> Dict:
@@ -173,16 +229,25 @@ class Database:
 
     # User authentication
     def authenticate_user(self, username: str, password: str) -> Optional[str]:
-        """Authenticate a user and return their full name if successful."""
-        query = "SELECT full_name FROM users WHERE username = ? AND password = ?"
+        """Authenticate a user and return their username if successful."""
+        query = "SELECT username FROM users WHERE username = ? AND password = ?"
         result = self._execute(query, (username, password), fetch_one=True)
         return result[0] if result else None
     
-    def create_user(self, username: str, password: str, full_name: str) -> bool:
-        """Create a new user account."""
-        query = "INSERT INTO users (username, password, full_name, created_at) VALUES (?, ?, ?, ?)"
-        try:
-            self._execute(query, (username, password, full_name, datetime.now().isoformat()))
-            return True
-        except sqlite3.IntegrityError:
+    def get_user_role(self, username: str) -> Optional[str]:
+        """Get user role (admin or scanner)."""
+        query = "SELECT role FROM users WHERE username = ?"
+        result = self._execute(query, (username,), fetch_one=True)
+        return result[0] if result else None
+    
+    def create_user(self, username: str, password: str, full_name: str, role: str = 'scanner') -> bool:
+        """Create a new user account with specified role."""
+        # Check if user already exists
+        check_query = "SELECT username FROM users WHERE username = ?"
+        existing = self._execute(check_query, (username,), fetch_one=True)
+        if existing:
             return False
+        
+        query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
+        result = self._execute(query, (username, password, full_name, role, datetime.now().isoformat()))
+        return result is not None

@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import threading
 from views.base_view import BaseView
-from config.constants import EMPLOYEES, CAMERA_WIDTH, CAMERA_HEIGHT, QR_SCAN_COOLDOWN
+from config.constants import EMPLOYEES, CAMERA_WIDTH, CAMERA_HEIGHT, QR_SCAN_COOLDOWN, PRIMARY_COLOR, YELLOW_50
 from utils.qr_scanner import QRCameraScanner
 
 
@@ -85,7 +85,7 @@ class ScanView(BaseView):
             content=ft.Icon(
                 ft.Icons.QR_CODE_SCANNER,
                 size=100,
-                color=ft.Colors.BLUE_700,
+                color=PRIMARY_COLOR,
             ),
             alignment=ft.alignment.center,
         )
@@ -95,9 +95,9 @@ class ScanView(BaseView):
         camera_container = ft.Container(
             content=camera_stack,
             height=300,
-            bgcolor=ft.Colors.BLUE_50,
+            bgcolor=YELLOW_50,
             border_radius=10,
-            border=ft.border.all(2, ft.Colors.BLUE_200),
+            border=ft.border.all(2, PRIMARY_COLOR),
             alignment=ft.alignment.center
         )
         
@@ -120,17 +120,22 @@ class ScanView(BaseView):
         
         def process_scan(user_id: str):
             """Process a scanned or entered ID."""
-            user_id = user_id.strip().upper()
+            user_id = user_id.strip()
             
             if not user_id:
                 return
             
-            if user_id not in EMPLOYEES:
-                self.show_snackbar(f"Unknown ID: {user_id}", ft.Colors.RED)
-                return
+            # Parse QR data: format is "ID|Name" or just "ID"
+            if "|" in user_id:
+                parts = user_id.split("|", 1)
+                school_id = parts[0].strip()
+                user_name = parts[1].strip()
+            else:
+                school_id = user_id
+                user_name = user_id
             
-            user_name = EMPLOYEES[user_id]
-            existing = self.db.is_user_checked_in(event_id, user_id)
+            # Accept any school ID without validation
+            existing = self.db.is_user_checked_in(event_id, school_id)
             
             if existing:
                 self.show_snackbar(
@@ -140,7 +145,7 @@ class ScanView(BaseView):
                 return
             
             timestamp = datetime.now().strftime("%H:%M:%S")
-            self.db.record_attendance(event_id, user_id, user_name, timestamp)
+            self.db.record_attendance(event_id, school_id, user_name, timestamp)
             
             # Update UI
             scan_log.controls.insert(0, ft.ListTile(
@@ -217,16 +222,16 @@ class ScanView(BaseView):
             else:
                 # Stop camera
                 camera_btn.icon = ft.Icons.VIDEOCAM
-                camera_btn.bgcolor = ft.Colors.BLUE_700
+                camera_btn.bgcolor = PRIMARY_COLOR
                 camera_btn.tooltip = "Start Camera"
                 camera_status.value = "Camera: Stopped"
                 camera_status.color = ft.Colors.GREY_600
-                camera_container.bgcolor = ft.Colors.BLUE_50
-                camera_container.border = ft.border.all(2, ft.Colors.BLUE_200)
+                camera_container.bgcolor = YELLOW_50
+                camera_container.border = ft.border.all(2, PRIMARY_COLOR)
                 
                 camera_image.visible = False
                 camera_icon.visible = True
-                camera_icon.content.color = ft.Colors.BLUE_700
+                camera_icon.content.color = PRIMARY_COLOR
                 
                 if self.app.qr_scanner:
                     self.app.qr_scanner.stop()
@@ -242,7 +247,7 @@ class ScanView(BaseView):
         camera_btn = ft.IconButton(
             icon=ft.Icons.VIDEOCAM,
             icon_color=ft.Colors.WHITE,
-            bgcolor=ft.Colors.BLUE_700,
+            bgcolor=PRIMARY_COLOR,
             tooltip="Start Camera",
             on_click=toggle_camera
         )
@@ -262,7 +267,7 @@ class ScanView(BaseView):
                                 ft.IconButton(
                                     icon=ft.Icons.SEND,
                                     icon_color=ft.Colors.WHITE,
-                                    bgcolor=ft.Colors.BLUE_700,
+                                    bgcolor=PRIMARY_COLOR,
                                     on_click=handle_manual_scan
                                 )
                             ],

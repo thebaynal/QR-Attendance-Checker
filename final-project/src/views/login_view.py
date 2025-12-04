@@ -3,7 +3,7 @@
 
 import flet as ft
 from views.base_view import BaseView
-from config.constants import APP_TITLE, APP_TAGLINE, DEFAULT_USERNAME, DEFAULT_PASSWORD
+from config.constants import APP_TITLE, APP_TAGLINE, DEFAULT_USERNAME, DEFAULT_PASSWORD, PRIMARY_COLOR
 
 
 class LoginView(BaseView):
@@ -45,11 +45,20 @@ class LoginView(BaseView):
                 return
             
             # Authenticate against database
-            user_name = self.db.authenticate_user(username.value.strip(), password.value)
+            username_value = username.value.strip()
+            user_authenticated = self.db.authenticate_user(username_value, password.value)
             
-            if user_name:
-                self.app.current_user = user_name
-                self.show_snackbar(f"Welcome, {user_name}!", ft.Colors.GREEN)
+            if user_authenticated:
+                # Get full name for display
+                full_name = self.db._execute(
+                    "SELECT full_name FROM users WHERE username = ?",
+                    (username_value,),
+                    fetch_one=True
+                )
+                display_name = full_name[0] if full_name else username_value
+                
+                self.app.current_user = username_value
+                self.show_snackbar(f"Welcome, {display_name}!", ft.Colors.GREEN)
                 self.page.go("/home")
             else:
                 error_text.value = "Invalid username or password"
@@ -68,16 +77,22 @@ class LoginView(BaseView):
                 ft.Container(
                     content=ft.Column(
                         [
-                            ft.Icon(
-                                ft.Icons.QR_CODE_SCANNER,
-                                size=80,
-                                color=ft.Colors.BLUE_700
+                            ft.Image(
+                                src="C:\\Users\\Macmac\\Documents\\App Dev Final Project\\QR-Attendance-Checker\\final-project\\src\\assets\\mascan.png",
+                                width=120,
+                                height=120,
+                                fit=ft.ImageFit.CONTAIN,
+                                error_content=ft.Icon(
+                                    ft.Icons.QR_CODE_SCANNER,
+                                    size=80,
+                                    color=PRIMARY_COLOR
+                                )
                             ),
                             ft.Text(
-                                "MoScan",
+                                "MaScan",
                                 size=40,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLUE_700
+                                color=PRIMARY_COLOR
                             ),
                             ft.Text(
                                 "Attendance Management System",
@@ -95,7 +110,7 @@ class LoginView(BaseView):
                                 height=50,
                                 on_click=authenticate,
                                 style=ft.ButtonStyle(
-                                    bgcolor=ft.Colors.BLUE_700,
+                                    bgcolor=PRIMARY_COLOR,
                                     color=ft.Colors.WHITE,
                                 )
                             ),

@@ -3,6 +3,7 @@
 
 import flet as ft
 from views.base_view import BaseView
+from config.constants import PRIMARY_COLOR
 
 
 class CreateEventView(BaseView):
@@ -52,7 +53,7 @@ class CreateEventView(BaseView):
                                 "New Event",
                                 size=28,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLUE_700
+                                color=PRIMARY_COLOR
                             ),
                             ft.Container(height=20),
                             name_field,
@@ -65,7 +66,7 @@ class CreateEventView(BaseView):
                                 height=50,
                                 on_click=save_event,
                                 style=ft.ButtonStyle(
-                                    bgcolor=ft.Colors.BLUE_700,
+                                    bgcolor=PRIMARY_COLOR,
                                     color=ft.Colors.WHITE
                                 )
                             )

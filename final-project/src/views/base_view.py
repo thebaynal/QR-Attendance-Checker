@@ -11,7 +11,7 @@ class BaseView:
         """Initialize base view with app reference.
         
         Args:
-            app: Reference to the main MoScanApp instance
+            app: Reference to the main MaScanApp instance
         """
         self.app = app
         self.page = app.page

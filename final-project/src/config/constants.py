@@ -13,7 +13,7 @@ EMPLOYEES = {
 }
 
 # App configuration
-APP_TITLE = "MoScan Attendance"
+APP_TITLE = "MaScan Attendance"
 APP_TAGLINE = "where showing up is mandatory. bro."
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 800
@@ -23,7 +23,7 @@ DEFAULT_USERNAME = "admin"
 DEFAULT_PASSWORD = "admin123"
 
 # Database
-DATABASE_NAME = "moscan_attendance.db"
+DATABASE_NAME = "mascan_attendance.db"
 
 # Camera settings
 CAMERA_WIDTH = 640
@@ -32,4 +32,8 @@ CAMERA_FPS = 20
 QR_SCAN_COOLDOWN = 2  # seconds
 
 # Colors
-PRIMARY_COLOR = "#1976D2"  # Blue 700
+PRIMARY_COLOR = "#F9A825"  # Yellow 800
+# Light variant for backgrounds
+YELLOW_50 = "#FFFDE7"  # Yellow 50 (light)
+# Alias for explicit usage
+YELLOW_800 = PRIMARY_COLOR
