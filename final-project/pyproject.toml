@@ -8,7 +8,9 @@ authors = [
     { name = "Flet developer", email = "you@example.com" }
 ]
 dependencies = [
-  "flet==0.28.3"
+  "flet==0.28.3",
+  "reportlab==4.0.4",
+  "python-dateutil==2.8.2"
 ]
 
 [tool.flet]
