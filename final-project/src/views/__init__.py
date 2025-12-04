@@ -7,6 +7,8 @@ from .home_view import HomeView
 from .event_view import EventView
 from .scan_view import ScanView
 from .create_event_view import CreateEventView
+from .qr_generator_view import QRGeneratorView
+from .user_management_view import UserManagementView
 
 __all__ = [
     'BaseView',
@@ -14,5 +16,7 @@ __all__ = [
     'HomeView',
     'EventView',
     'ScanView',
-    'CreateEventView'
+    'CreateEventView',
+    'QRGeneratorView',
+    'UserManagementView'
 ]

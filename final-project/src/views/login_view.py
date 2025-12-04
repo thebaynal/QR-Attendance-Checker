@@ -45,11 +45,20 @@ class LoginView(BaseView):
                 return
             
             # Authenticate against database
-            user_name = self.db.authenticate_user(username.value.strip(), password.value)
+            username_value = username.value.strip()
+            user_authenticated = self.db.authenticate_user(username_value, password.value)
             
-            if user_name:
-                self.app.current_user = user_name
-                self.show_snackbar(f"Welcome, {user_name}!", ft.Colors.GREEN)
+            if user_authenticated:
+                # Get full name for display
+                full_name = self.db._execute(
+                    "SELECT full_name FROM users WHERE username = ?",
+                    (username_value,),
+                    fetch_one=True
+                )
+                display_name = full_name[0] if full_name else username_value
+                
+                self.app.current_user = username_value
+                self.show_snackbar(f"Welcome, {display_name}!", ft.Colors.GREEN)
                 self.page.go("/home")
             else:
                 error_text.value = "Invalid username or password"

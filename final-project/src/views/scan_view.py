@@ -120,17 +120,22 @@ class ScanView(BaseView):
         
         def process_scan(user_id: str):
             """Process a scanned or entered ID."""
-            user_id = user_id.strip().upper()
+            user_id = user_id.strip()
             
             if not user_id:
                 return
             
-            if user_id not in EMPLOYEES:
-                self.show_snackbar(f"Unknown ID: {user_id}", ft.Colors.RED)
-                return
+            # Parse QR data: format is "ID|Name" or just "ID"
+            if "|" in user_id:
+                parts = user_id.split("|", 1)
+                school_id = parts[0].strip()
+                user_name = parts[1].strip()
+            else:
+                school_id = user_id
+                user_name = user_id
             
-            user_name = EMPLOYEES[user_id]
-            existing = self.db.is_user_checked_in(event_id, user_id)
+            # Accept any school ID without validation
+            existing = self.db.is_user_checked_in(event_id, school_id)
             
             if existing:
                 self.show_snackbar(
@@ -140,7 +145,7 @@ class ScanView(BaseView):
                 return
             
             timestamp = datetime.now().strftime("%H:%M:%S")
-            self.db.record_attendance(event_id, user_id, user_name, timestamp)
+            self.db.record_attendance(event_id, school_id, user_name, timestamp)
             
             # Update UI
             scan_log.controls.insert(0, ft.ListTile(
