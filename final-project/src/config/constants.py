@@ -15,8 +15,8 @@ EMPLOYEES = {
 # App configuration
 APP_TITLE = "MaScan Attendance"
 APP_TAGLINE = "where showing up is mandatory. bro."
-WINDOW_WIDTH = 500
-WINDOW_HEIGHT = 800
+WINDOW_WIDTH = 414
+WINDOW_HEIGHT = 850
 
 # Default credentials
 DEFAULT_USERNAME = "admin"
