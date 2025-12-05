@@ -32,8 +32,8 @@ CAMERA_FPS = 20
 QR_SCAN_COOLDOWN = 2  # seconds
 
 # Colors
-PRIMARY_COLOR = "#F9A825"  # Yellow 800
+PRIMARY_COLOR = "#2A73FF"  # Blue 600
 # Light variant for backgrounds
-YELLOW_50 = "#FFFDE7"  # Yellow 50 (light)
+BLUE_50 = "#E3F2FD"  # Blue 50 (light)
 # Alias for explicit usage
-YELLOW_800 = PRIMARY_COLOR
+BLUE_600 = PRIMARY_COLOR
