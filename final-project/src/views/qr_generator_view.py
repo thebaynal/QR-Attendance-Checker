@@ -9,7 +9,7 @@ import qrcode
 import base64
 from datetime import datetime
 from views.base_view import BaseView
-from config.constants import PRIMARY_COLOR, YELLOW_50
+from config.constants import PRIMARY_COLOR, BLUE_50
 from database.db_manager import Database
 
 

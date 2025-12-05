@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 import threading
 from views.base_view import BaseView
-from config.constants import EMPLOYEES, CAMERA_WIDTH, CAMERA_HEIGHT, QR_SCAN_COOLDOWN, PRIMARY_COLOR, YELLOW_50
+from config.constants import EMPLOYEES, CAMERA_WIDTH, CAMERA_HEIGHT, QR_SCAN_COOLDOWN, PRIMARY_COLOR, BLUE_50
 from utils.qr_scanner import QRCameraScanner
 
 
