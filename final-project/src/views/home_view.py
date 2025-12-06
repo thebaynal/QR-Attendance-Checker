@@ -14,8 +14,15 @@ class HomeView(BaseView):
         try:
             events = self.db.get_all_events()
 
-            # Create a container for the event list that can be updated
-            event_list_container = ft.Container()
+            # Create a scrollable column to hold the event list
+            event_list_column = ft.Column(
+                scroll=ft.ScrollMode.AUTO,
+                expand=True
+            )
+            event_list_container = ft.Container(
+                content=event_list_column,
+                expand=True
+            )
 
             def refresh_event_list():
                 """Refresh the event list from the database."""
@@ -97,54 +104,109 @@ class HomeView(BaseView):
                 
                 # Create event list or empty state
                 if events:
-                    event_list_container.content = ft.Column(
-                        [
-                            ft.Container(
-                                content=ft.Column(
-                                    [
-                                        ft.Text(
-                                            "Events",
-                                            size=18,
-                                            weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.BLACK87
-                                        ),
-                                        ft.Text(
-                                            f"{len(events)} event{'s' if len(events) != 1 else ''}",
-                                            size=13,
-                                            color=ft.Colors.GREY_600
+                    event_list_column.controls = [
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Column(
+                                        [
+                                            ft.Text(
+                                                "Events",
+                                                size=18,
+                                                weight=ft.FontWeight.BOLD,
+                                                color=ft.Colors.BLACK87
+                                            ),
+                                            ft.Text(
+                                                f"{len(events)} event{'s' if len(events) != 1 else ''}",
+                                                size=13,
+                                                color=ft.Colors.GREY_600
+                                            )
+                                        ],
+                                        spacing=4
+                                    ),
+                                    ft.Container(expand=True),  # Spacer
+                                    ft.ElevatedButton(
+                                        "Add Event",
+                                        icon=ft.Icons.ADD,
+                                        on_click=lambda e: self.page.go("/create_event"),
+                                        style=ft.ButtonStyle(
+                                            bgcolor=PRIMARY_COLOR,
+                                            color=ft.Colors.WHITE,
+                                            padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                                            shape=ft.RoundedRectangleBorder(radius=5)
                                         )
-                                    ],
-                                    spacing=4
-                                ),
-                                padding=ft.padding.only(left=20, right=20, top=16, bottom=12)
+                                    )
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=12
                             ),
-                            ft.ListView(
-                                controls=[create_event_card(eid, data) for eid, data in events.items()],
-                                spacing=12,
-                                padding=ft.padding.symmetric(horizontal=20, vertical=0),
-                                expand=True
-                            )
-                        ],
-                        spacing=0,
-                        expand=True
-                    )
-                else:
-                    event_list_container.content = ft.Container(
-                        content=ft.Column(
-                            [
-                                ft.Icon(ft.Icons.EVENT_BUSY, size=80, color=ft.Colors.GREY_300),
-                                ft.Text("No events yet", size=22, color=ft.Colors.GREY_600, weight=ft.FontWeight.BOLD),
-                                ft.Text("Create your first event to get started", size=14, color=ft.Colors.GREY_500)
-                            ],
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            spacing=16
+                            padding=ft.padding.only(left=20, right=20, top=16, bottom=12)
                         ),
-                        alignment=ft.alignment.center,
-                        expand=True
-                    )
+                        ft.ListView(
+                            controls=[create_event_card(eid, data) for eid, data in events.items()],
+                            spacing=12,
+                            padding=ft.padding.symmetric(horizontal=20, vertical=0),
+                            expand=True
+                        )
+                    ]
+                else:
+                    event_list_column.controls = [
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Column(
+                                        [
+                                            ft.Text(
+                                                "Events",
+                                                size=18,
+                                                weight=ft.FontWeight.BOLD,
+                                                color=ft.Colors.BLACK87
+                                            ),
+                                            ft.Text(
+                                                "0 events",
+                                                size=13,
+                                                color=ft.Colors.GREY_600
+                                            )
+                                        ],
+                                        spacing=4
+                                    ),
+                                    ft.Container(expand=True),  # Spacer
+                                    ft.ElevatedButton(
+                                        "Add Event",
+                                        icon=ft.Icons.ADD,
+                                        on_click=lambda e: self.page.go("/create_event"),
+                                        style=ft.ButtonStyle(
+                                            bgcolor=PRIMARY_COLOR,
+                                            color=ft.Colors.WHITE,
+                                            padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                                            shape=ft.RoundedRectangleBorder(radius=5)
+                                        )
+                                    )
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=12
+                            ),
+                            padding=ft.padding.only(left=20, right=20, top=16, bottom=12)
+                        ),
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.Icon(ft.Icons.EVENT_BUSY, size=80, color=ft.Colors.GREY_300),
+                                    ft.Text("No events yet", size=22, color=ft.Colors.GREY_600, weight=ft.FontWeight.BOLD),
+                                    ft.Text("Create your first event to get started", size=14, color=ft.Colors.GREY_500)
+                                ],
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=16
+                            ),
+                            alignment=ft.alignment.center,
+                            expand=True
+                        )
+                    ]
                 
                 try:
-                    event_list_container.update()
+                    event_list_column.update()
                 except:
                     pass
 
@@ -207,11 +269,6 @@ class HomeView(BaseView):
                         color=ft.Colors.WHITE,
                     ),
                     event_list_container,
-                    ft.FloatingActionButton(
-                        icon=ft.Icons.ADD,
-                        on_click=lambda e: self.page.go("/create_event"),
-                        bgcolor=PRIMARY_COLOR,
-                    )
                 ]
             )
 
