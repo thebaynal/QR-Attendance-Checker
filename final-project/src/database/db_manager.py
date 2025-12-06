@@ -49,7 +49,8 @@ class Database:
             return result
         except sqlite3.Error as e:
             print(f"Database error: {e}")
-            return None
+            # Return empty list for fetch_all, None for fetch_one, to prevent iteration errors
+            return [] if fetch_all else None
 
     def _add_column_if_not_exists(self, table: str, column: str, column_type: str):
         """Add a column to a table if it doesn't already exist."""
@@ -339,6 +340,16 @@ class Database:
         self._execute(students_table)
         self._execute(attendance_table)
         
+        # Ensure required columns exist (migration)
+        self._add_column_if_not_exists('students_qrcodes', 'year_level', 'TEXT')
+        self._add_column_if_not_exists('students_qrcodes', 'section', 'TEXT')
+        self._add_column_if_not_exists('attendance_timeslots', 'morning_time', 'TEXT')
+        self._add_column_if_not_exists('attendance_timeslots', 'morning_status', "TEXT DEFAULT 'Absent'")
+        self._add_column_if_not_exists('attendance_timeslots', 'lunch_time', 'TEXT')
+        self._add_column_if_not_exists('attendance_timeslots', 'lunch_status', "TEXT DEFAULT 'Absent'")
+        self._add_column_if_not_exists('attendance_timeslots', 'afternoon_time', 'TEXT')
+        self._add_column_if_not_exists('attendance_timeslots', 'afternoon_status', "TEXT DEFAULT 'Absent'")
+        
         # Create indexes for better performance
         self._execute("CREATE INDEX IF NOT EXISTS idx_students_section ON students_qrcodes(year_level, section)")
         self._execute("CREATE INDEX IF NOT EXISTS idx_attendance_event ON attendance_timeslots(event_id)")
@@ -394,8 +405,8 @@ class Database:
         SELECT 
             s.school_id,
             s.name,
-            s.year_level,
-            s.section,
+            COALESCE(s.year_level, 'N/A') as year_level,
+            COALESCE(s.section, 'N/A') as section,
             COALESCE(a.morning_time, '') as morning_time,
             COALESCE(a.morning_status, 'Absent') as morning_status,
             COALESCE(a.lunch_time, '') as lunch_time,
@@ -409,6 +420,10 @@ class Database:
         """
         
         results = self._execute(query, (event_id,), fetch_all=True)
+        
+        # Handle case where results is None or empty
+        if not results:
+            return {}
         
         # Group by section
         grouped_data = {}
