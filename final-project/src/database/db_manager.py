@@ -14,6 +14,7 @@ class Database:
     def __init__(self, db_name: str = "mascan_attendance.db"):
         self.db_name = db_name
         self.create_tables()
+        self.create_enhanced_tables()
         self._ensure_admin_role()
     
     def _ensure_admin_role(self):
@@ -63,6 +64,7 @@ class Database:
                     print(f"Adding column '{column}' to table '{table}'")
                     cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
                     conn.commit()
+                    print(f"Column '{column}' added successfully")
         except sqlite3.Error as e:
             print(f"Database error adding column: {e}")
 
@@ -77,6 +79,7 @@ class Database:
         )
         """
         
+        # Updated attendance table with time_slot column
         attendance_table_sql = """
         CREATE TABLE IF NOT EXISTS attendance (
             event_id TEXT NOT NULL,
@@ -84,7 +87,8 @@ class Database:
             user_name TEXT NOT NULL,
             timestamp TEXT NOT NULL,
             status TEXT NOT NULL,
-            PRIMARY KEY (event_id, user_id),
+            time_slot TEXT DEFAULT 'morning',
+            PRIMARY KEY (event_id, user_id, time_slot),
             FOREIGN KEY (event_id) REFERENCES events(id)
         )
         """
@@ -103,9 +107,10 @@ class Database:
         self._execute(attendance_table_sql)
         self._execute(users_table_sql)
         
-        # Add role column to users table if it doesn't exist (migration)
+        # Add columns to existing tables if they don't exist (migration)
         self._add_column_if_not_exists('users', 'role', "TEXT DEFAULT 'scanner'")
         self._add_column_if_not_exists('users', 'created_at', "TEXT DEFAULT ''")
+        self._add_column_if_not_exists('attendance', 'time_slot', "TEXT DEFAULT 'morning'")
         
         # Ensure admin user exists and has correct role
         try:
@@ -186,30 +191,48 @@ class Database:
         result = self._execute(event_query, (event_id,))
         return result is not None
 
-    # Attendance operations
+    # Attendance operations with time slot support
     def record_attendance(self, event_id: str, user_id: str, user_name: str, 
                          timestamp: str, status: str = "Checked In"):
-        """Record a new attendance entry."""
+        """Record a new attendance entry (backward compatible - defaults to morning)."""
+        return self.record_attendance_with_timeslot(event_id, user_id, user_name, 
+                                                    timestamp, "morning", status)
+    
+    def record_attendance_with_timeslot(self, event_id: str, user_id: str, 
+                                       user_name: str, timestamp: str, 
+                                       time_slot: str = "morning", 
+                                       status: str = "Checked In") -> bool:
+        """Record attendance for a specific time slot."""
         query = """
-        INSERT INTO attendance (event_id, user_id, user_name, timestamp, status) 
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO attendance (event_id, user_id, user_name, timestamp, time_slot, status) 
+        VALUES (?, ?, ?, ?, ?, ?)
         """
         try:
-            self._execute(query, (event_id, user_id, user_name, timestamp, status))
+            self._execute(query, (event_id, user_id, user_name, timestamp, time_slot, status))
             return True
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as e:
+            print(f"Integrity error: {e}")
             return False
 
     def is_user_checked_in(self, event_id: str, user_id: str) -> Optional[str]:
-        """Check if a user has already checked in for a specific event."""
-        query = "SELECT timestamp FROM attendance WHERE event_id = ? AND user_id = ?"
+        """Check if a user has already checked in for a specific event (any time slot)."""
+        query = "SELECT timestamp FROM attendance WHERE event_id = ? AND user_id = ? LIMIT 1"
         result = self._execute(query, (event_id, user_id), fetch_one=True)
+        return result[0] if result else None
+    
+    def is_checked_in_for_slot(self, event_id: str, user_id: str, time_slot: str) -> Optional[str]:
+        """Check if user is already checked in for a specific time slot."""
+        query = """
+        SELECT timestamp FROM attendance 
+        WHERE event_id = ? AND user_id = ? AND time_slot = ?
+        """
+        result = self._execute(query, (event_id, user_id, time_slot), fetch_one=True)
         return result[0] if result else None
 
     def get_attendance_by_event(self, event_id: str) -> Dict:
         """Fetch all attendance records for a given event."""
         query = """
-        SELECT user_id, user_name, timestamp, status 
+        SELECT user_id, user_name, timestamp, status, time_slot
         FROM attendance 
         WHERE event_id = ? 
         ORDER BY timestamp DESC
@@ -219,13 +242,35 @@ class Database:
         attendance_log = {}
         if results:
             for row in results:
-                user_id, user_name, timestamp, status = row
-                attendance_log[user_id] = {
+                user_id, user_name, timestamp, status, time_slot = row
+                # Use composite key for users who attended multiple slots
+                key = f"{user_id}_{time_slot}"
+                attendance_log[key] = {
                     "name": user_name,
                     "time": timestamp,
-                    "status": status
+                    "status": status,
+                    "time_slot": time_slot
                 }
         return attendance_log
+    
+    def get_attendance_summary(self, event_id: str) -> Dict:
+        """Get attendance summary by time slot."""
+        query = """
+        SELECT time_slot, COUNT(DISTINCT user_id) as count
+        FROM attendance
+        WHERE event_id = ?
+        GROUP BY time_slot
+        """
+        results = self._execute(query, (event_id,), fetch_all=True)
+        
+        summary = {'morning': 0, 'afternoon': 0}
+        if results:
+            for row in results:
+                time_slot, count = row
+                if time_slot in summary:
+                    summary[time_slot] = count
+        
+        return summary
 
     # User authentication
     def authenticate_user(self, username: str, password: str) -> Optional[str]:
@@ -251,3 +296,150 @@ class Database:
         query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
         result = self._execute(query, (username, password, full_name, role, datetime.now().isoformat()))
         return result is not None
+    
+    # database/db_manager.py (Add these methods)
+
+    def create_enhanced_tables(self):
+        """Create enhanced tables for time-slot attendance tracking."""
+        
+        # Enhanced students table with section/year info
+        students_table = """
+        CREATE TABLE IF NOT EXISTS students_qrcodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            school_id TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            year_level TEXT,
+            section TEXT,
+            qr_data TEXT NOT NULL UNIQUE,
+            qr_data_encoded TEXT NOT NULL,
+            csv_data TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+        
+        # Enhanced attendance with separate columns for each time slot
+        attendance_table = """
+        CREATE TABLE IF NOT EXISTS attendance_timeslots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            morning_time TEXT,
+            morning_status TEXT DEFAULT 'Absent',
+            lunch_time TEXT,
+            lunch_status TEXT DEFAULT 'Absent',
+            afternoon_time TEXT,
+            afternoon_status TEXT DEFAULT 'Absent',
+            date_recorded TEXT NOT NULL,
+            UNIQUE(event_id, user_id),
+            FOREIGN KEY (event_id) REFERENCES events(id),
+            FOREIGN KEY (user_id) REFERENCES students_qrcodes(school_id)
+        )
+        """
+        
+        self._execute(students_table)
+        self._execute(attendance_table)
+        
+        # Create indexes for better performance
+        self._execute("CREATE INDEX IF NOT EXISTS idx_students_section ON students_qrcodes(year_level, section)")
+        self._execute("CREATE INDEX IF NOT EXISTS idx_attendance_event ON attendance_timeslots(event_id)")
+
+    def record_timeslot_attendance(self, event_id: str, school_id: str, time_slot: str) -> bool:
+        """Record attendance for a specific time slot."""
+        from datetime import datetime
+        
+        time_now = datetime.now().strftime("%H:%M:%S")
+        date_now = datetime.now().strftime("%Y-%m-%d")
+        
+        # Check if record exists
+        check_query = "SELECT id FROM attendance_timeslots WHERE event_id = ? AND user_id = ?"
+        existing = self._execute(check_query, (event_id, school_id), fetch_one=True)
+        
+        if existing:
+            # Update existing record
+            if time_slot == 'morning':
+                update_query = """
+                UPDATE attendance_timeslots 
+                SET morning_time = ?, morning_status = 'Present'
+                WHERE event_id = ? AND user_id = ?
+                """
+            elif time_slot == 'lunch':
+                update_query = """
+                UPDATE attendance_timeslots 
+                SET lunch_time = ?, lunch_status = 'Present'
+                WHERE event_id = ? AND user_id = ?
+                """
+            else:  # afternoon
+                update_query = """
+                UPDATE attendance_timeslots 
+                SET afternoon_time = ?, afternoon_status = 'Present'
+                WHERE event_id = ? AND user_id = ?
+                """
+            
+            self._execute(update_query, (time_now, event_id, school_id))
+        else:
+            # Create new record
+            insert_query = """
+            INSERT INTO attendance_timeslots 
+            (event_id, user_id, {}_time, {}_status, date_recorded)
+            VALUES (?, ?, ?, 'Present', ?)
+            """.format(time_slot, time_slot)
+            
+            self._execute(insert_query, (event_id, school_id, time_now, date_now))
+        
+        return True
+
+    def get_attendance_by_section(self, event_id: str) -> dict:
+        """Get attendance grouped by year and section."""
+        query = """
+        SELECT 
+            s.school_id,
+            s.name,
+            s.year_level,
+            s.section,
+            COALESCE(a.morning_time, '') as morning_time,
+            COALESCE(a.morning_status, 'Absent') as morning_status,
+            COALESCE(a.lunch_time, '') as lunch_time,
+            COALESCE(a.lunch_status, 'Absent') as lunch_status,
+            COALESCE(a.afternoon_time, '') as afternoon_time,
+            COALESCE(a.afternoon_status, 'Absent') as afternoon_status
+        FROM students_qrcodes s
+        LEFT JOIN attendance_timeslots a 
+            ON s.school_id = a.user_id AND a.event_id = ?
+        ORDER BY s.year_level, s.section, s.name
+        """
+        
+        results = self._execute(query, (event_id,), fetch_all=True)
+        
+        # Group by section
+        grouped_data = {}
+        for row in results:
+            school_id, name, year, section, m_time, m_status, l_time, l_status, a_time, a_status = row
+            
+            section_key = f"{year or 'N/A'} - {section or 'N/A'}"
+            
+            if section_key not in grouped_data:
+                grouped_data[section_key] = []
+            
+            grouped_data[section_key].append({
+                'school_id': school_id,
+                'name': name,
+                'morning_time': m_time,
+                'morning_status': m_status,
+                'lunch_time': l_time,
+                'lunch_status': l_status,
+                'afternoon_time': a_time,
+                'afternoon_status': a_status
+            })
+        
+        return grouped_data
+
+    def check_timeslot_attendance(self, event_id: str, school_id: str, time_slot: str) -> bool:
+        """Check if student already checked in for specific time slot."""
+        query = f"""
+        SELECT {time_slot}_status 
+        FROM attendance_timeslots 
+        WHERE event_id = ? AND user_id = ?
+        """
+        result = self._execute(query, (event_id, school_id), fetch_one=True)
+        
+        return result and result[0] == 'Present'
