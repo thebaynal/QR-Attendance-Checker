@@ -15,20 +15,21 @@ class CreateEventView(BaseView):
         # Store selected date
         selected_date = [None]
         
-        # Form fields using modern styling
+        # Form fields using modern styling - adjusted for 414px window
         name_field = self.create_modern_text_field(
             label="Event Name",
-            hint_text="e.g., Annual Company Meeting",
+            hint_text="",
             prefix_icon=ft.Icons.EVENT_NOTE,
-            width=400,
+            width=330,
         )
         
-        # Date display field (read-only)
+        # Date display field (read-only) - clickable to open picker
         date_display = ft.TextField(
             label="Event Date",
-            hint_text="Click to select date",
+            hint_text="Select Date",
             prefix_icon=ft.Icons.CALENDAR_TODAY,
-            width=400,
+            suffix_icon=ft.Icons.ARROW_DROP_DOWN,
+            width=330,
             height=56,
             border_radius=12,
             filled=True,
@@ -45,7 +46,7 @@ class CreateEventView(BaseView):
             label="Description (Optional)",
             hint_text="Add event details or notes...",
             multiline=True,
-            width=400,
+            width=330,
         )
         
         # Status message
@@ -84,25 +85,7 @@ class CreateEventView(BaseView):
                 self.page.overlay.append(date_picker)
                 self.page.update()
             date_picker.open = True
-            self.page.update()
-        
-        # Container with date field and calendar button - properly centered
-        date_container = ft.Row(
-            [
-                date_display,
-                ft.IconButton(
-                    icon=ft.Icons.CALENDAR_MONTH,
-                    icon_color=PRIMARY_COLOR,
-                    tooltip="Pick a date",
-                    on_click=open_date_picker,
-                    style=ft.ButtonStyle(
-                        bgcolor=ft.Colors.with_opacity(0.1, PRIMARY_COLOR),
-                        shape=ft.RoundedRectangleBorder(radius=12),
-                    ),
-                ),
-            ],
-            spacing=8,
-        )
+            date_picker.update()
         
         # Make date field clickable
         date_display.on_click = open_date_picker
@@ -144,84 +127,88 @@ class CreateEventView(BaseView):
                 status_text.visible = True
                 status_text.update()
         
-        # Modern form card
-        form_card = self.create_modern_card(
-            content=ft.Column(
-                [
-                    # Header with icon
-                    ft.Column(
-                        [
-                            ft.Icon(
-                                ft.Icons.ADD_CIRCLE_OUTLINE,
-                                size=56,
-                                color=PRIMARY_COLOR,
-                            ),
-                            self.create_section_title("Create New Event", size=24),
-                            ft.Text(
-                                "Set up a new event for attendance tracking",
-                                size=14,
-                                color=ft.Colors.GREY_600,
-                                text_align=ft.TextAlign.CENTER,
-                            ),
-                        ],
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=8,
-                    ),
-                    
-                    ft.Container(height=24),
-                    
-                    # Form fields - all centered
-                    ft.Column(
-                        [
-                            ft.Container(
-                                content=name_field,
-                                alignment=ft.alignment.center,
-                            ),
-                            ft.Container(
-                                content=date_container,
-                                alignment=ft.alignment.center,
-                            ),
-                            ft.Container(
-                                content=desc_field,
-                                alignment=ft.alignment.center,
-                            ),
-                        ],
-                        spacing=16,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    
-                    ft.Container(height=8),
-                    status_text,
-                    ft.Container(height=16),
-                    
-                    # Action buttons
-                    ft.Row(
-                        [
-                            ft.OutlinedButton(
-                                "Cancel",
-                                width=190,
-                                height=50,
-                                on_click=lambda e: self.page.go("/home"),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=12),
-                                    side=ft.BorderSide(1, ft.Colors.GREY_400),
+        # Modern form card with fixed width
+        form_card = ft.Container(
+            content=self.create_modern_card(
+                content=ft.Column(
+                    [
+                        # Header with icon
+                        ft.Column(
+                            [
+                                ft.Icon(
+                                    ft.Icons.ADD_CIRCLE_OUTLINE,
+                                    size=56,
+                                    color=PRIMARY_COLOR,
                                 ),
+                                self.create_section_title("Create New Event", size=24),
+                                ft.Text(
+                                    "Set up a new event for attendance tracking",
+                                    size=14,
+                                    color=ft.Colors.GREY_600,
+                                    text_align=ft.TextAlign.CENTER,
+                                ),
+                            ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=8,
+                        ),
+                        
+                        ft.Container(height=24),
+                        
+                        # Form fields - all centered
+                        ft.Column(
+                            [
+                                name_field,
+                                date_display,
+                                desc_field,
+                            ],
+                            spacing=16,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        
+                        ft.Container(height=8),
+                        status_text,
+                        ft.Container(height=16),
+                        
+                        # Action buttons - full width to match fields
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.OutlinedButton(
+                                        "Cancel",
+                                        expand=1,
+                                        height=50,
+                                        on_click=lambda e: self.page.go("/home"),
+                                        style=ft.ButtonStyle(
+                                            shape=ft.RoundedRectangleBorder(radius=12),
+                                            side=ft.BorderSide(1, ft.Colors.GREY_400),
+                                            text_style=ft.TextStyle(
+                                                size=14,
+                                                weight=ft.FontWeight.W_600,
+                                            ),
+                                        ),
+                                    ),
+                                    ft.Container(width=10),
+                                    ft.Container(
+                                        content=self.create_modern_button(
+                                            text="Create Event",
+                                            icon=ft.Icons.CHECK_CIRCLE,
+                                            on_click=save_event,
+                                            width=None,
+                                        ),
+                                        expand=1,
+                                    ),
+                                ],
                             ),
-                            self.create_modern_button(
-                                text="Create Event",
-                                icon=ft.Icons.CHECK_CIRCLE,
-                                on_click=save_event,
-                                width=190,
-                            ),
-                        ],
-                        spacing=12,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=0,
+                            width=330,
+                        ),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=0,
+                ),
+                padding=40,
             ),
-            padding=40,
+            width=520,
+            alignment=ft.alignment.center,
         )
         
         return ft.View(
