@@ -17,10 +17,17 @@ class HomeView(BaseView):
             def delete_event_handler(event_id: str, event_name: str):
                 """Handle event deletion with modern confirmation dialog."""
                 def confirm_delete(e):
-                    self.db.delete_event(event_id)
-                    self.show_snackbar(f"✓ Event '{event_name}' deleted", ft.Colors.GREEN)
-                    self.page.close(dialog)
-                    self.page.go("/home")
+                    try:
+                        self.db.delete_event(event_id)
+                        self.show_snackbar(f"✓ Event '{event_name}' deleted", ft.Colors.GREEN)
+                        self.page.close(dialog)
+                        # Force a full refresh by rebuilding the view
+                        self.page.views.clear()
+                        self.page.views.append(self.build())
+                        self.page.update()
+                    except Exception as ex:
+                        self.show_snackbar(f"Error deleting event: {str(ex)}", ft.Colors.RED)
+                        self.page.close(dialog)
 
                 def cancel_delete(e):
                     self.page.close(dialog)
@@ -211,7 +218,7 @@ class HomeView(BaseView):
                         ft.Column(
                             [
                                 ft.Text(
-                                    "Events",
+                                    "My Events",
                                     size=28,
                                     weight=ft.FontWeight.W_800,
                                     color=ft.Colors.GREY_900,
