@@ -94,6 +94,7 @@ class LoginView(BaseView):
                                 bgcolor=ft.Colors.WHITE,
                                 content=ft.Column(
                                     [
+                                        ft.Container(height=14),
                                         ft.Column(
                                             [
                                                 ft.Image(

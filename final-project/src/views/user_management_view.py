@@ -79,42 +79,87 @@ class UserManagementView(BaseView):
                             role_badge_color = ft.Colors.GREEN if role == 'admin' else ft.Colors.BLUE
                             role_label = "Admin" if role == 'admin' else "Scanner"
                             
-                            user_tile = ft.Card(
-                                content=ft.Container(
-                                    content=ft.Row(
-                                        [
-                                            ft.Column(
-                                                [
-                                                    ft.Text(
-                                                        f"{full_name} (@{username})",
-                                                        weight=ft.FontWeight.BOLD,
-                                                        size=14
-                                                    ),
-                                                    ft.Text(
-                                                        f"Role: {role_label}",
-                                                        size=12,
-                                                        color=ft.Colors.GREY_600
-                                                    ),
-                                                ],
-                                                expand=True
-                                            ),
-                                            ft.Container(
-                                                content=ft.Text(
-                                                    role_label,
-                                                    color=ft.Colors.WHITE,
-                                                    size=10,
-                                                    weight=ft.FontWeight.BOLD
-                                                ),
-                                                bgcolor=role_badge_color,
-                                                padding=8,
-                                                border_radius=5
-                                            )
+                            # Create delete handler with proper closure
+                            def make_delete_handler(user_username, user_fullname):
+                                def delete_user_click(e):
+                                    print(f"DEBUG: Delete clicked for {user_username}")
+                                    
+                                    def handle_confirm(dlg_event):
+                                        try:
+                                            print(f"DEBUG: Confirming deletion of {user_username}")
+                                            self.db._execute("DELETE FROM users WHERE username = ?", (user_username,))
+                                            print(f"DEBUG: User deleted from database")
+                                            self.show_snackbar(f"✓ User '{user_fullname}' deleted!", ft.Colors.GREEN)
+                                            load_users()
+                                        except Exception as ex:
+                                            print(f"ERROR: {ex}")
+                                            import traceback
+                                            traceback.print_exc()
+                                    
+                                    def handle_cancel(dlg_event):
+                                        print(f"DEBUG: Deletion cancelled")
+                                        pass
+                                    
+                                    # Create dialog
+                                    dlg = ft.AlertDialog(
+                                        title=ft.Text("Confirm Deletion"),
+                                        content=ft.Text(f"Delete user '{user_fullname}'?"),
+                                        actions=[
+                                            ft.TextButton("Cancel", on_click=handle_cancel),
+                                            ft.TextButton("Yes, Delete", on_click=handle_confirm),
                                         ],
-                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                        vertical_alignment=ft.CrossAxisAlignment.CENTER
-                                    ),
-                                    padding=10
-                                )
+                                    )
+                                    
+                                    self.page.add(dlg)
+                                    dlg.open = True
+                                    self.page.update()
+                                
+                                return delete_user_click
+                            
+                            user_tile = ft.Container(
+                                content=ft.Row(
+                                    [
+                                        ft.Column(
+                                            [
+                                                ft.Text(
+                                                    f"{full_name} (@{username})",
+                                                    weight=ft.FontWeight.BOLD,
+                                                    size=14
+                                                ),
+                                                ft.Text(
+                                                    f"Role: {role_label}",
+                                                    size=12,
+                                                    color=ft.Colors.GREY_600
+                                                ),
+                                            ],
+                                            expand=True
+                                        ),
+                                        ft.Container(
+                                            content=ft.Text(
+                                                role_label,
+                                                color=ft.Colors.WHITE,
+                                                size=10,
+                                                weight=ft.FontWeight.BOLD
+                                            ),
+                                            bgcolor=role_badge_color,
+                                            padding=8,
+                                            border_radius=5
+                                        ),
+                                        ft.IconButton(
+                                            icon=ft.Icons.DELETE,
+                                            icon_color=ft.Colors.RED,
+                                            on_click=make_delete_handler(username, full_name)
+                                        )
+                                    ],
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=10
+                                ),
+                                padding=10,
+                                border=ft.border.all(1, ft.Colors.GREY_300),
+                                border_radius=8,
+                                bgcolor=ft.Colors.WHITE,
+                                margin=5
                             )
                             users_list.controls.append(user_tile)
                     else:
@@ -122,7 +167,9 @@ class UserManagementView(BaseView):
                             ft.Text("No users yet", color=ft.Colors.GREY_500)
                         )
                     
-                    users_list.update()
+                    # Only update if ListView is on the page
+                    if users_list.page:
+                        users_list.update()
                 except Exception as e:
                     print(f"ERROR in load_users: {e}")
                     import traceback
@@ -158,6 +205,7 @@ class UserManagementView(BaseView):
                     print(f"DEBUG: Database create_user result: {result}")
                     
                     if result:
+                        self.show_snackbar(f"✓ User '{full_name}' added successfully!", ft.Colors.GREEN)
                         status_text.value = f"User '{full_name}' created successfully!"
                         status_text.color = ft.Colors.GREEN
                         
@@ -167,17 +215,23 @@ class UserManagementView(BaseView):
                         full_name_field.value = ""
                         role_dropdown.value = "scanner"
                         
-                        # Reload list
-                        load_users()
+                        # Update fields
+                        username_field.update()
+                        password_field.update()
+                        full_name_field.update()
+                        role_dropdown.update()
+                        status_text.update()
+                        
+                        # Reload list - safely handle ListView update
+                        try:
+                            load_users()
+                        except Exception as load_ex:
+                            print(f"DEBUG: Could not update users_list on page, will update next load: {load_ex}")
                     else:
                         status_text.value = f"User '{username}' already exists"
                         status_text.color = ft.Colors.RED
                         print(f"DEBUG: User creation failed - user '{username}' may already exist")
-                    
-                    status_text.update()
-                    username_field.update()
-                    password_field.update()
-                    full_name_field.update()
+                        status_text.update()
                     role_dropdown.update()
                 except Exception as e:
                     print(f"ERROR in create_user_handler: {e}")
@@ -240,7 +294,7 @@ class UserManagementView(BaseView):
                                                 spacing=15
                                             ),
                                             padding=20,
-                                            bgcolor=YELLOW_50,
+                                            bgcolor=BLUE_50,
                                             border_radius=10
                                         ),
                                     ],

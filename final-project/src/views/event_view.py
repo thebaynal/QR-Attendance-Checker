@@ -1,299 +1,292 @@
-# views/event_view.py
-"""View for displaying event details and attendance records."""
+# views/enhanced_event_view.py
+"""Event view with enhanced PDF export."""
 
 import flet as ft
 from views.base_view import BaseView
-from config.constants import PRIMARY_COLOR
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
+from utils.pdf_export import AttendancePDFExporter
 from datetime import datetime
 import os
+import threading
+from tkinter import filedialog
+import tkinter as tk
 
 
 class EventView(BaseView):
-    """Event detail with attendance log."""
+    """Event detail with grouped attendance export."""
     
     def build(self, event_id: str):
-        """Build and return the event detail view.
-        
-        Args:
-            event_id: ID of the event to display
-        """
-        event = self.db.get_event_by_id(event_id)
-        if not event:
-            # FIX: Must return a valid view, not None
-            self.page.go("/home")
-            # Return a dummy view while redirecting
-            return ft.View(
-                "/",
-                [ft.Container()]
-            )
-        
-        attendance = self.db.get_attendance_by_event(event_id)
-        
-        attendance_table = ft.DataTable(
-            columns=[
-                ft.DataColumn(ft.Text("Name", weight=ft.FontWeight.BOLD)),
-                ft.DataColumn(ft.Text("ID", weight=ft.FontWeight.BOLD)),
-                ft.DataColumn(ft.Text("Time", weight=ft.FontWeight.BOLD)),
-                ft.DataColumn(ft.Text("Status", weight=ft.FontWeight.BOLD)),
-            ],
-            rows=[
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(record['name'])),
-                        ft.DataCell(ft.Text(user_id)),
-                        ft.DataCell(ft.Text(record['time'])),
-                        ft.DataCell(ft.Text(record['status'], color=ft.Colors.GREEN)),
-                    ]
-                ) for user_id, record in attendance.items()
-            ] if attendance else [
-                ft.DataRow(cells=[
-                    ft.DataCell(ft.Text("No attendance records yet", italic=True)),
-                    ft.DataCell(ft.Text("")),
-                    ft.DataCell(ft.Text("")),
-                    ft.DataCell(ft.Text("")),
-                ])
-            ]
-        )
-        
-        # Create folder picker for PDF export
-        folder_picker = ft.FilePicker()
-        
-        def generate_pdf_at_location(folder_path: str):
-            """Generate PDF at the selected location."""
-            try:
-                # Generate filename with event name and timestamp
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                safe_event_name = "".join(c if c.isalnum() or c in (' ', '_', '-') else '_' 
-                                         for c in event['name'])
-                filename = f"Attendance_{safe_event_name}_{timestamp}.pdf"
-                pdf_path = os.path.join(folder_path, filename)
-                
-                # Create PDF document
-                doc = SimpleDocTemplate(pdf_path, pagesize=letter)
-                story = []
-                styles = getSampleStyleSheet()
-                
-                # Add title
-                title_style = ParagraphStyle(
-                    'CustomTitle',
-                    parent=styles['Heading1'],
-                    fontSize=18,
-                    textColor=colors.HexColor('#1976D2'),
-                    spaceAfter=12,
-                    alignment=1
-                )
-                story.append(Paragraph(f"MoScan Attendance Report", title_style))
-                story.append(Spacer(1, 0.2*inch))
-                
-                # Add event details
-                details_style = ParagraphStyle(
-                    'Details',
-                    parent=styles['Normal'],
-                    fontSize=11,
-                    spaceAfter=6
-                )
-                story.append(Paragraph(f"<b>Event:</b> {event['name']}", details_style))
-                story.append(Paragraph(f"<b>Date:</b> {event['date']}", details_style))
-                story.append(Paragraph(f"<b>Description:</b> {event.get('desc', 'N/A')}", details_style))
-                story.append(Paragraph(f"<b>Total Attendees:</b> {len(attendance)}", details_style))
-                story.append(Paragraph(f"<b>Export Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", details_style))
-                story.append(Spacer(1, 0.3*inch))
-                
-                # Add attendance table title
-                table_title_style = ParagraphStyle(
-                    'TableTitle',
-                    parent=styles['Heading2'],
-                    fontSize=14,
-                    textColor=colors.HexColor('#1976D2'),
-                    spaceAfter=10
-                )
-                story.append(Paragraph("Attendance Records", table_title_style))
-                
-                # Create attendance table data
-                if attendance:
-                    table_data = [["#", "Name", "ID", "Time", "Status"]]
-                    for idx, (user_id, record) in enumerate(attendance.items(), 1):
-                        table_data.append([
-                            str(idx),
-                            record['name'],
-                            user_id,
-                            record['time'],
-                            record['status']
-                        ])
-                    
-                    # Create and style table
-                    table = Table(table_data, colWidths=[0.4*inch, 2*inch, 1.2*inch, 1*inch, 1*inch])
-                    table.setStyle(TableStyle([
-                        # Header styling
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1976D2')),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (-1, 0), 11),
-                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                        ('TOPPADDING', (0, 0), (-1, 0), 12),
-                        
-                        # Body styling
-                        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-                        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                        ('FONTSIZE', (0, 1), (-1, -1), 9),
-                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ]))
-                    story.append(table)
-                else:
-                    story.append(Paragraph("No attendance records found.", styles['Normal']))
-                
-                # Add footer
-                story.append(Spacer(1, 0.5*inch))
-                footer_style = ParagraphStyle(
-                    'Footer',
-                    parent=styles['Normal'],
-                    fontSize=8,
-                    textColor=colors.grey,
-                    alignment=1
-                )
-                story.append(Paragraph(
-                    f"Generated by MoScan Attendance System | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 
-                    footer_style
-                ))
-                
-                # Build PDF
-                doc.build(story)
-                
-                self.show_snackbar(f"✅ PDF saved successfully: {filename}", ft.Colors.GREEN)
-                print(f"PDF saved to: {pdf_path}")
-                
-            except Exception as ex:
-                print(f"ERROR generating PDF: {ex}")
-                import traceback
-                traceback.print_exc()
-                self.show_snackbar(f"❌ Export error: {str(ex)}", ft.Colors.RED)
-        
-        def on_folder_selected(e: ft.FilePickerResultEvent):
-            """Handle folder selection result."""
-            if e.path:
-                print(f"Selected folder: {e.path}")
-                self.show_snackbar("Generating PDF...", ft.Colors.BLUE)
-                generate_pdf_at_location(e.path)
-            else:
-                print("Folder selection cancelled")
-                self.show_snackbar("Export cancelled", ft.Colors.ORANGE)
-        
-        def export_data(e):
-            """Open folder picker to choose save location."""
-            if not attendance:
-                self.show_snackbar("⚠️ No attendance records to export", ft.Colors.ORANGE)
-                return
-            
-            try:
-                # Set the callback for folder selection
-                folder_picker.on_result = on_folder_selected
-                # Open folder picker dialog
-                folder_picker.get_directory_path(
-                    dialog_title=f"Select folder to save attendance report"
-                )
-                print("Folder picker opened")
-            except Exception as ex:
-                print(f"ERROR opening folder picker: {ex}")
-                import traceback
-                traceback.print_exc()
-                self.show_snackbar(f"❌ Error: {str(ex)}", ft.Colors.RED)
-        
-        # Add folder picker to page overlay
-        if folder_picker not in self.page.overlay:
-            self.page.overlay.append(folder_picker)
-        
-        # Check if current user is admin to show export button
-        user_role = None
+        """Build event detail view."""
         try:
-            user_role = self.db.get_user_role(self.app.current_user) if self.app.current_user else None
-        except AttributeError:
-            # If get_user_role doesn't exist, show export button for all users
-            user_role = 'admin'
-        
-        # Build column content with optional export button
-        column_content = [
-            ft.Text(
-                event['name'],
-                size=24,
-                weight=ft.FontWeight.BOLD,
-                color=PRIMARY_COLOR
-            ),
-            ft.Text(event['date'], size=16, color=ft.Colors.GREY_700),
-            ft.Divider(),
-            ft.Row(
-                [
-                    ft.Icon(ft.Icons.PEOPLE, color=PRIMARY_COLOR, size=30),
-                    ft.Text(
-                        f"Total Attendees: {len(attendance)}",
-                        size=18,
-                        weight=ft.FontWeight.BOLD
-                    ),
-                ],
-                spacing=10
-            ),
-            ft.Container(
-                content=ft.Column(
-                    [attendance_table],
-                    scroll=ft.ScrollMode.AUTO
-                ),
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=10,
-                padding=10,
-                expand=True
-            ),
-        ]
-        
-        # Add export button (show for all users or just admins based on your needs)
-        # For now, showing for all users - remove the if condition if you want all users to export
-        column_content.append(
-            ft.Row(
-                [
-                    ft.ElevatedButton(
-                        "Export to PDF",
-                        icon=ft.Icons.PICTURE_AS_PDF,
-                        on_click=export_data,
-                        style=ft.ButtonStyle(
-                            bgcolor=PRIMARY_COLOR,
-                            color=ft.Colors.WHITE
+            print(f"DEBUG: Building event view for event_id: {event_id}")
+            
+            event = self.db.get_event_by_id(event_id)
+            if not event:
+                print(f"DEBUG: Event not found: {event_id}")
+                self.page.go("/home")
+                return ft.View("/", [ft.Container()])
+            
+            print(f"DEBUG: Event found: {event}")
+            
+            # Get current user role
+            current_username = self.app.current_user
+            current_user_role = self.db.get_user_role(current_username) if current_username else 'scanner'
+            is_admin = current_user_role and current_user_role.lower() == 'admin'
+            
+            # Get attendance by section
+            attendance_by_section = self.db.get_attendance_by_section(event_id)
+            print(f"DEBUG: attendance_by_section: {attendance_by_section}")
+            
+            if not attendance_by_section:
+                print("DEBUG: No attendance data found")
+                attendance_by_section = {}
+            
+            # Create section tabs
+            section_tabs = []
+            for section_name, students in sorted(attendance_by_section.items()):
+                # Calculate stats
+                total = len(students)
+                morning_present = sum(1 for s in students if s.get('morning_status') == 'Present')
+                afternoon_present = sum(1 for s in students if s.get('afternoon_status') == 'Present')
+                
+                # Create table for this section
+                table_data = ft.DataTable(
+                    columns=[
+                        ft.DataColumn(ft.Text("#", weight=ft.FontWeight.BOLD)),
+                        ft.DataColumn(ft.Text("Student ID", weight=ft.FontWeight.BOLD)),
+                        ft.DataColumn(ft.Text("Name", weight=ft.FontWeight.BOLD)),
+                        ft.DataColumn(ft.Text("Morning Time", weight=ft.FontWeight.BOLD)),
+                        ft.DataColumn(ft.Text("Morning Status", weight=ft.FontWeight.BOLD)),
+                        ft.DataColumn(ft.Text("Afternoon Time", weight=ft.FontWeight.BOLD)),
+                        ft.DataColumn(ft.Text("Afternoon Status", weight=ft.FontWeight.BOLD)),
+                    ],
+                    rows=[
+                        ft.DataRow(
+                            cells=[
+                                ft.DataCell(ft.Text(str(idx))),
+                                ft.DataCell(ft.Text(s.get('school_id', ''))),
+                                ft.DataCell(ft.Text(s.get('name', ''))),
+                                ft.DataCell(ft.Text(s.get('morning_time') or '-')),
+                                ft.DataCell(ft.Text(
+                                    s.get('morning_status', 'Absent'),
+                                    color=ft.Colors.GREEN if s.get('morning_status') == 'Present' else ft.Colors.RED,
+                                    weight=ft.FontWeight.BOLD
+                                )),
+                                ft.DataCell(ft.Text(s.get('afternoon_time') or '-')),
+                                ft.DataCell(ft.Text(
+                                    s.get('afternoon_status', 'Absent'),
+                                    color=ft.Colors.GREEN if s.get('afternoon_status') == 'Present' else ft.Colors.RED,
+                                    weight=ft.FontWeight.BOLD
+                                )),
+                            ]
+                        ) for idx, s in enumerate(students, 1)
+                    ]
+                )
+                
+                # Section content
+                section_content = ft.Column(
+                    [
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Text(f"Total: {total}", size=14),
+                                    ft.VerticalDivider(),
+                                    ft.Text(f"Morning: {morning_present}/{total}", 
+                                           size=14, color=ft.Colors.GREEN_700),
+                                    ft.VerticalDivider(),
+                                    ft.Text(f"Afternoon: {afternoon_present}/{total}", 
+                                           size=14, color=ft.Colors.BLUE_700),
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER
+                            ),
+                            bgcolor=ft.Colors.GREY_100,
+                            padding=10,
+                            border_radius=5,
+                            margin=ft.margin.only(bottom=10)
                         ),
-                        height=50
-                    ),
-                    ft.Text(
-                        f"📄 {len(attendance)} records ready to export",
-                        size=12,
-                        color=ft.Colors.GREY_600,
-                        italic=True
-                    ) if attendance else ft.Text(
-                        "No records to export",
-                        size=12,
-                        color=ft.Colors.GREY_400,
-                        italic=True
+                        ft.Container(
+                            content=table_data,
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=5,
+                            padding=10
+                        )
+                    ],
+                    scroll=ft.ScrollMode.AUTO
+                )
+                
+                section_tabs.append(
+                    ft.Tab(
+                        text=section_name,
+                        content=section_content
+                    )
+                )
+            
+            # Create tabs view
+            tabs = ft.Tabs(
+                tabs=section_tabs if section_tabs else [
+                    ft.Tab(
+                        text="No Data",
+                        content=ft.Container(
+                            content=ft.Text("No attendance records yet"),
+                            alignment=ft.alignment.center,
+                            padding=50
+                        )
                     )
                 ],
-                spacing=15,
-                alignment=ft.MainAxisAlignment.START
+                expand=True
             )
-        )
+            
+            def export_to_pdf(e):
+                """Export attendance to PDF with file picker."""
+                # Check if user is admin
+                if not is_admin:
+                    self.show_snackbar("Only admins can export attendance reports", ft.Colors.RED)
+                    return
+                
+                try:
+                    print("DEBUG: Export to PDF button clicked")
+                    
+                    # Sanitize event name for filename
+                    safe_event_name = "".join(c for c in event['name'] if c.isalnum() or c in (' ', '-', '_')).strip()
+                    
+                    # Generate default filename
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    default_filename = f"Attendance_{safe_event_name}_{timestamp}.pdf"
+                    
+                    # Show file picker dialog in a separate thread to avoid blocking UI
+                    def pick_save_location():
+                        try:
+                            # Create hidden root window for tkinter
+                            root = tk.Tk()
+                            root.withdraw()
+                            root.attributes('-topmost', True)
+                            
+                            # Show file save dialog
+                            filepath = filedialog.asksaveasfilename(
+                                defaultextension=".pdf",
+                                initialfile=default_filename,
+                                initialdir=os.path.expanduser("~/Documents"),
+                                filetypes=[("PDF Files", "*.pdf"), ("All Files", "*.*")],
+                                title="Save Attendance Report"
+                            )
+                            
+                            root.destroy()
+                            
+                            # If user cancelled, return None
+                            if not filepath:
+                                print("DEBUG: File picker cancelled by user")
+                                return None
+                            
+                            print(f"DEBUG: User selected location: {filepath}")
+                            return filepath
+                        
+                        except Exception as picker_error:
+                            print(f"Error in file picker: {picker_error}")
+                            return None
+                    
+                    # Run file picker in background thread
+                    filepath = pick_save_location()
+                    
+                    if not filepath:
+                        print("DEBUG: No file location selected")
+                        return
+                    
+                    print(f"DEBUG: Exporting to {filepath}")
+                    
+                    # Create parent directory if it doesn't exist
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    
+                    # Export
+                    exporter = AttendancePDFExporter(self.db)
+                    result = exporter.export_attendance(event_id, filepath)
+                    
+                    # Verify file was created
+                    if os.path.exists(filepath):
+                        file_size = os.path.getsize(filepath)
+                        print(f"DEBUG: PDF created successfully, size: {file_size} bytes")
+                        print(f"DEBUG: Export result: {result}")
+                        
+                        # Show success message with file location
+                        filename_only = os.path.basename(filepath)
+                        self.show_snackbar(f"✅ PDF saved: {filename_only}", ft.Colors.GREEN)
+                    else:
+                        print(f"DEBUG: PDF file was not created at {filepath}")
+                        raise FileNotFoundError(f"PDF file was not created: {filepath}")
+                    
+                except Exception as ex:
+                    print(f"Export error: {ex}")
+                    import traceback
+                    traceback.print_exc()
+                    self.show_snackbar(f"❌ Export failed: {str(ex)}", ft.Colors.RED)
+            
+            return ft.View(
+                f"/event/{event_id}",
+                [
+                    self.create_app_bar(event['name'], show_back=True),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    event['name'],
+                                    size=24,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.BLUE_700
+                                ),
+                                ft.Text(event['date'], size=16, color=ft.Colors.GREY_700),
+                            ] + (
+                                [
+                                    ft.ElevatedButton(
+                                        "Export to PDF",
+                                        icon=ft.Icons.PICTURE_AS_PDF,
+                                        on_click=export_to_pdf,
+                                        width=200,
+                                        height=50,
+                                        style=ft.ButtonStyle(
+                                            bgcolor=ft.Colors.RED_700,
+                                            color=ft.Colors.WHITE,
+                                            padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                                            shape=ft.RoundedRectangleBorder(radius=5)
+                                        )
+                                    ),
+                                    ft.Divider(),
+                                ] if is_admin else [ft.Divider()]
+                            ) + [
+                                tabs
+                            ],
+                            spacing=15,
+                            expand=True
+                        ),
+                        padding=20,
+                        expand=True
+                    )
+                ]
+            )
         
-        return ft.View(
-            f"/event/{event_id}",
-            [
-                self.create_app_bar(event['name'], show_back=True),
-                ft.Container(
-                    content=ft.Column(
-                        column_content,
-                        spacing=15
-                    ),
-                    padding=20,
-                    expand=True
-                )
-            ]
-        )
+        except Exception as e:
+            print(f"ERROR building event view: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Return error view
+            return ft.View(
+                f"/event/{event_id}",
+                [
+                    self.create_app_bar("Event Error", show_back=True),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Icon(ft.Icons.ERROR, size=80, color=ft.Colors.RED),
+                                ft.Text("Error loading event", size=20, color=ft.Colors.RED),
+                                ft.Text(str(e), size=14, color=ft.Colors.GREY_600),
+                                ft.TextButton(
+                                    "Go Back",
+                                    on_click=lambda e: self.page.go("/home")
+                                )
+                            ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=20
+                        ),
+                        alignment=ft.alignment.center,
+                        expand=True
+                    )
+                ]
+            )

@@ -30,6 +30,7 @@ class MaScanApp:
         self.page.padding = 0
         self.page.window.width = WINDOW_WIDTH
         self.page.window.height = WINDOW_HEIGHT
+        self.page.window.icon = "C:\\Users\\Asus\\Documents\\QR-Attendance-Checker\\final-project\\src\\assets\\MS_Logo_Blue.ico"
         
         # Initialize views
         self.login_view = LoginView(self)
@@ -93,7 +94,15 @@ class MaScanApp:
                 event_id = route.split("/")[-1]
                 new_view = self.scan_view.build(event_id) if self.current_user else self.login_view.build()
             elif route == "/qr_generator":
-                new_view = self.qr_generator_view.build() if self.current_user else self.login_view.build()
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can generate QR codes", ft.Colors.RED)
+                        new_view = self.home_view.build() if self.current_user else self.login_view.build()
+                    else:
+                        new_view = self.qr_generator_view.build()
             elif route == "/user_management":
                 if not self.current_user:
                     new_view = self.login_view.build()
@@ -213,28 +222,28 @@ class MaScanApp:
                 title=ft.Text("Home"),
                 on_click=on_home_click
             ),
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.QR_CODE),
-                title=ft.Text("Generate QR Codes"),
-                on_click=on_qr_click
-            ),
         ]
         
-        # Add user management only for admin users
+        # Add admin-only options
         user_role = self.db.get_user_role(self.current_user) if self.current_user else None
         print(f"DEBUG: current_user={self.current_user}, user_role={user_role}")
         
         if user_role == 'admin':
-            print("DEBUG: Adding Manage Users menu item")
-            menu_items.append(
+            print("DEBUG: Adding admin menu items")
+            menu_items.extend([
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.QR_CODE),
+                    title=ft.Text("Generate QR Codes"),
+                    on_click=on_qr_click
+                ),
                 ft.ListTile(
                     leading=ft.Icon(ft.Icons.ADMIN_PANEL_SETTINGS),
                     title=ft.Text("Manage Users"),
                     on_click=on_user_mgmt_click
                 )
-            )
+            ])
         else:
-            print(f"DEBUG: NOT adding Manage Users (user_role={user_role})")
+            print(f"DEBUG: NOT adding admin menu items (user_role={user_role})")
         
         # Add logout at the end
         menu_items.append(
