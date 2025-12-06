@@ -6,6 +6,9 @@ from views.base_view import BaseView
 from utils.pdf_export import AttendancePDFExporter
 from datetime import datetime
 import os
+import threading
+from tkinter import filedialog
+import tkinter as tk
 
 
 class EventView(BaseView):
@@ -128,37 +131,76 @@ class EventView(BaseView):
             )
             
             def export_to_pdf(e):
-                """Export attendance to PDF."""
+                """Export attendance to PDF with file picker."""
                 try:
                     print("DEBUG: Export to PDF button clicked")
-                    
-                    # Create exports folder with absolute path
-                    export_dir = os.path.abspath("exports")
-                    os.makedirs(export_dir, exist_ok=True)
-                    print(f"DEBUG: Export directory: {export_dir}")
                     
                     # Sanitize event name for filename
                     safe_event_name = "".join(c for c in event['name'] if c.isalnum() or c in (' ', '-', '_')).strip()
                     
-                    # Generate filename
+                    # Generate default filename
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = os.path.join(export_dir, f"Attendance_{safe_event_name}_{timestamp}.pdf")
+                    default_filename = f"Attendance_{safe_event_name}_{timestamp}.pdf"
                     
-                    print(f"DEBUG: Exporting to {filename}")
+                    # Show file picker dialog in a separate thread to avoid blocking UI
+                    def pick_save_location():
+                        try:
+                            # Create hidden root window for tkinter
+                            root = tk.Tk()
+                            root.withdraw()
+                            root.attributes('-topmost', True)
+                            
+                            # Show file save dialog
+                            filepath = filedialog.asksaveasfilename(
+                                defaultextension=".pdf",
+                                initialfile=default_filename,
+                                initialdir=os.path.expanduser("~/Documents"),
+                                filetypes=[("PDF Files", "*.pdf"), ("All Files", "*.*")],
+                                title="Save Attendance Report"
+                            )
+                            
+                            root.destroy()
+                            
+                            # If user cancelled, return None
+                            if not filepath:
+                                print("DEBUG: File picker cancelled by user")
+                                return None
+                            
+                            print(f"DEBUG: User selected location: {filepath}")
+                            return filepath
+                        
+                        except Exception as picker_error:
+                            print(f"Error in file picker: {picker_error}")
+                            return None
+                    
+                    # Run file picker in background thread
+                    filepath = pick_save_location()
+                    
+                    if not filepath:
+                        print("DEBUG: No file location selected")
+                        return
+                    
+                    print(f"DEBUG: Exporting to {filepath}")
+                    
+                    # Create parent directory if it doesn't exist
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
                     
                     # Export
                     exporter = AttendancePDFExporter(self.db)
-                    result = exporter.export_attendance(event_id, filename)
+                    result = exporter.export_attendance(event_id, filepath)
                     
                     # Verify file was created
-                    if os.path.exists(filename):
-                        file_size = os.path.getsize(filename)
+                    if os.path.exists(filepath):
+                        file_size = os.path.getsize(filepath)
                         print(f"DEBUG: PDF created successfully, size: {file_size} bytes")
                         print(f"DEBUG: Export result: {result}")
-                        self.show_snackbar(f"✅ PDF exported to exports folder", ft.Colors.GREEN)
+                        
+                        # Show success message with file location
+                        filename_only = os.path.basename(filepath)
+                        self.show_snackbar(f"✅ PDF saved: {filename_only}", ft.Colors.GREEN)
                     else:
-                        print(f"DEBUG: PDF file was not created at {filename}")
-                        raise FileNotFoundError(f"PDF file was not created: {filename}")
+                        print(f"DEBUG: PDF file was not created at {filepath}")
+                        raise FileNotFoundError(f"PDF file was not created: {filepath}")
                     
                 except Exception as ex:
                     print(f"Export error: {ex}")
