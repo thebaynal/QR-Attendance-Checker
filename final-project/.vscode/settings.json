@@ -1,0 +1,13 @@
+{
+    "code-runner.runInTerminal": true,
+    "code-runner.executorMap": {
+        "python": "python -u"
+    },
+    "code-runner.ignoreSelection": true,
+    "code-runner.fileDirectoryAsCwd": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.python",
+        "editor.formatOnSave": true
+    },
+    "python.linting.enabled": true
+}
