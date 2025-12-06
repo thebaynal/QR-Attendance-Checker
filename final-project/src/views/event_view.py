@@ -27,6 +27,11 @@ class EventView(BaseView):
             
             print(f"DEBUG: Event found: {event}")
             
+            # Get current user role
+            current_username = self.app.current_user
+            current_user_role = self.db.get_user_role(current_username) if current_username else 'scanner'
+            is_admin = current_user_role and current_user_role.lower() == 'admin'
+            
             # Get attendance by section
             attendance_by_section = self.db.get_attendance_by_section(event_id)
             print(f"DEBUG: attendance_by_section: {attendance_by_section}")
@@ -132,6 +137,11 @@ class EventView(BaseView):
             
             def export_to_pdf(e):
                 """Export attendance to PDF with file picker."""
+                # Check if user is admin
+                if not is_admin:
+                    self.show_snackbar("Only admins can export attendance reports", ft.Colors.RED)
+                    return
+                
                 try:
                     print("DEBUG: Export to PDF button clicked")
                     
@@ -222,20 +232,24 @@ class EventView(BaseView):
                                     color=ft.Colors.BLUE_700
                                 ),
                                 ft.Text(event['date'], size=16, color=ft.Colors.GREY_700),
-                                ft.ElevatedButton(
-                                    "Export to PDF",
-                                    icon=ft.Icons.PICTURE_AS_PDF,
-                                    on_click=export_to_pdf,
-                                    width=200,
-                                    height=50,
-                                    style=ft.ButtonStyle(
-                                        bgcolor=ft.Colors.RED_700,
-                                        color=ft.Colors.WHITE,
-                                        padding=ft.padding.symmetric(horizontal=20, vertical=12),
-                                        shape=ft.RoundedRectangleBorder(radius=5)
-                                    )
-                                ),
-                                ft.Divider(),
+                            ] + (
+                                [
+                                    ft.ElevatedButton(
+                                        "Export to PDF",
+                                        icon=ft.Icons.PICTURE_AS_PDF,
+                                        on_click=export_to_pdf,
+                                        width=200,
+                                        height=50,
+                                        style=ft.ButtonStyle(
+                                            bgcolor=ft.Colors.RED_700,
+                                            color=ft.Colors.WHITE,
+                                            padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                                            shape=ft.RoundedRectangleBorder(radius=5)
+                                        )
+                                    ),
+                                    ft.Divider(),
+                                ] if is_admin else [ft.Divider()]
+                            ) + [
                                 tabs
                             ],
                             spacing=15,
