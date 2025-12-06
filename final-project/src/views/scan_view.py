@@ -28,58 +28,111 @@ class ScanView(BaseView):
         selected_time_slot = ["morning"]  # Default to morning
         
         scan_log = ft.ListView(spacing=5, padding=10)
-        
-       # In scan_view.py, update the load_recent_scans function:
 
         def load_recent_scans(time_slot=None):
             """Load recent scans for the selected time slot."""
             scan_log.controls.clear()
             
-            if time_slot:
-                # Load scans for specific time slot
-                query = """
-                SELECT user_id, user_name, timestamp, time_slot 
-                FROM attendance 
-                WHERE event_id = ? AND time_slot = ?
-                ORDER BY timestamp DESC 
-                LIMIT 10
-                """
-                results = self.db._execute(query, (event_id, time_slot), fetch_all=True)
-            else:
-                # Load all recent scans
-                attendance = self.db.get_attendance_by_event(event_id)
-                results = [(key.split('_')[0], rec['name'], rec['time'], rec.get('time_slot', 'N/A')) 
-                        for key, rec in list(attendance.items())[:10]]
-            
-            if results:
-                for record in results:
-                    user_id, user_name, timestamp, time_slot_val = record
-                    
-                    # Icon and color based on time slot
-                    if time_slot_val == 'morning':
-                        icon = ft.Icons.WB_SUNNY
-                        icon_color = ft.Colors.ORANGE
-                        slot_text = "☀️ Morning"
-                    elif time_slot_val == 'afternoon':
-                        icon = ft.Icons.NIGHTS_STAY
-                        icon_color = ft.Colors.BLUE
-                        slot_text = "🌙 Afternoon"
-                    else:
-                        icon = ft.Icons.CHECK_CIRCLE
-                        icon_color = ft.Colors.GREEN
-                        slot_text = "✓"
-                    
+            try:
+                # Get attendance data by section which has the timeslot info
+                attendance_by_section = self.db.get_attendance_by_section(event_id)
+                
+                # Flatten and collect all scans
+                all_scans = []
+                for section_name, students in attendance_by_section.items():
+                    for student in students:
+                        # Add morning scan if present
+                        if student.get('morning_status') == 'Present' and student.get('morning_time'):
+                            all_scans.append({
+                                'school_id': student['school_id'],
+                                'name': student['name'],
+                                'time': student['morning_time'],
+                                'time_slot': 'morning',
+                                'status': 'Present'
+                            })
+                        # Add afternoon scan if present
+                        if student.get('afternoon_status') == 'Present' and student.get('afternoon_time'):
+                            all_scans.append({
+                                'school_id': student['school_id'],
+                                'name': student['name'],
+                                'time': student['afternoon_time'],
+                                'time_slot': 'afternoon',
+                                'status': 'Present'
+                            })
+                
+                # Sort by time (most recent first)
+                all_scans.sort(key=lambda x: x['time'], reverse=True)
+                
+                # Filter by selected time slot if specified
+                if time_slot:
+                    filtered_scans = [s for s in all_scans if s['time_slot'] == time_slot]
+                else:
+                    filtered_scans = all_scans
+                
+                # Limit to 15 most recent
+                filtered_scans = filtered_scans[:15]
+                
+                if filtered_scans:
+                    for record in filtered_scans:
+                        time_slot_val = record['time_slot']
+                        user_id = record['school_id']
+                        user_name = record['name']
+                        timestamp = record['time']
+                        
+                        # Icon and color based on time slot
+                        if time_slot_val == 'morning':
+                            icon = ft.Icons.WB_SUNNY
+                            icon_color = ft.Colors.ORANGE
+                            slot_text = "☀️ Morning"
+                            bg_color = ft.Colors.ORANGE_50
+                        elif time_slot_val == 'afternoon':
+                            icon = ft.Icons.NIGHTS_STAY
+                            icon_color = ft.Colors.BLUE
+                            slot_text = "🌙 Afternoon"
+                            bg_color = ft.Colors.BLUE_50
+                        else:
+                            icon = ft.Icons.CHECK_CIRCLE
+                            icon_color = ft.Colors.GREEN
+                            slot_text = "✓"
+                            bg_color = ft.Colors.GREEN_50
+                        
+                        scan_tile = ft.Container(
+                            content=ft.ListTile(
+                                leading=ft.Icon(icon, color=icon_color),
+                                title=ft.Text(user_name, weight=ft.FontWeight.BOLD, size=14),
+                                subtitle=ft.Text(f"{slot_text} • {timestamp}", size=11),
+                                trailing=ft.Text(user_id, size=11, color=ft.Colors.GREY_600),
+                                dense=True,
+                                content_padding=ft.padding.symmetric(horizontal=10, vertical=5)
+                            ),
+                            bgcolor=bg_color,
+                            padding=ft.padding.symmetric(horizontal=5, vertical=3),
+                            border_radius=8,
+                            margin=ft.margin.only(bottom=5)
+                        )
+                        scan_log.controls.append(scan_tile)
+                else:
+                    # Show empty state
                     scan_log.controls.append(
-                        ft.ListTile(
-                            leading=ft.Icon(icon, color=icon_color),
-                            title=ft.Text(user_name, weight=ft.FontWeight.BOLD),
-                            subtitle=ft.Text(f"{slot_text} • {timestamp}"),
-                            trailing=ft.Text(user_id, size=12, color=ft.Colors.GREY_600),
-                            dense=True
+                        ft.Container(
+                            content=ft.Text(
+                                "No scans yet for this time slot",
+                                size=12,
+                                color=ft.Colors.GREY_500,
+                                italic=True
+                            ),
+                            alignment=ft.alignment.center,
+                            padding=20
                         )
                     )
             
-            # Only update if scan_log is already added to page
+            except Exception as e:
+                print(f"Error loading recent scans: {e}")
+                scan_log.controls.append(
+                    ft.Text(f"Error loading scans: {str(e)}", color=ft.Colors.RED)
+                )
+            
+            # Update the list view
             try:
                 if hasattr(scan_log, 'page') and scan_log.page:
                     scan_log.update()
@@ -229,6 +282,16 @@ class ScanView(BaseView):
             weight=ft.FontWeight.BOLD
         )
         
+        # Scan result feedback display
+        scan_result_container = ft.Container(
+            content=ft.Text("", size=14, weight=ft.FontWeight.BOLD),
+            bgcolor=ft.Colors.TRANSPARENT,
+            padding=15,
+            border_radius=10,
+            visible=False,
+            alignment=ft.alignment.center
+        )
+        
         camera_image = ft.Image(
             src_base64="",
             width=CAMERA_WIDTH,
@@ -295,7 +358,17 @@ class ScanView(BaseView):
                     # Parse QR data (format: school_id|name)
                     parts = qr_data.split('|')
                     if len(parts) < 1:
-                        self.show_snackbar("Invalid QR format", ft.Colors.RED)
+                        # Show error feedback
+                        scan_result_container.bgcolor = ft.Colors.RED_100
+                        scan_result_container.content.value = "❌ Invalid QR format"
+                        scan_result_container.content.color = ft.Colors.RED_700
+                        scan_result_container.visible = True
+                        scan_result_container.update()
+                        
+                        # Hide after 2 seconds
+                        time.sleep(2)
+                        scan_result_container.visible = False
+                        scan_result_container.update()
                         return
                     
                     school_id = parts[0].strip()
@@ -304,47 +377,111 @@ class ScanView(BaseView):
                     # Check if student exists
                     student = self.db.get_student_by_id(school_id)
                     if not student:
-                        self.show_snackbar(f"Student {school_id} not found", ft.Colors.RED)
+                        # Show not found feedback
+                        scan_result_container.bgcolor = ft.Colors.RED_100
+                        scan_result_container.content.value = f"❌ Student {school_id} not found"
+                        scan_result_container.content.color = ft.Colors.RED_700
+                        scan_result_container.visible = True
+                        scan_result_container.update()
+                        
+                        time.sleep(2)
+                        scan_result_container.visible = False
+                        scan_result_container.update()
                         return
                     
                     # Check if already checked in for this time slot
                     already_checked = self.db.check_timeslot_attendance(event_id, school_id, current_time_slot)
                     
                     if already_checked:
-                        self.show_snackbar(f"✅ Already checked in for {current_time_slot.upper()}!", ft.Colors.ORANGE)
+                        # Show already scanned feedback
+                        scan_result_container.bgcolor = ft.Colors.AMBER_100
+                        scan_result_container.content.value = f"⚠️ Already checked in for {current_time_slot.upper()}"
+                        scan_result_container.content.color = ft.Colors.AMBER_900
+                        scan_result_container.visible = True
+                        scan_result_container.update()
+                        
+                        # Keep visible longer for duplicate
+                        time.sleep(3)
+                        scan_result_container.visible = False
+                        scan_result_container.update()
                         return
                     
                     # Record attendance
                     success = self.db.record_timeslot_attendance(event_id, school_id, current_time_slot)
                     
                     if success:
-                        # Update stats display
+                        # Show success feedback with animation
+                        student_name = student.get('name', school_id)
+                        scan_result_container.bgcolor = ft.Colors.GREEN_100
+                        scan_result_container.content.value = f"✅ {student_name}\n{current_time_slot.upper()} checked in"
+                        scan_result_container.content.color = ft.Colors.GREEN_700
+                        scan_result_container.visible = True
+                        scan_result_container.update()
+                        
+                        # Update stats display with a small delay for visual effect
+                        time.sleep(0.3)
                         stats = self.db.get_attendance_summary(event_id)
                         morning_count.value = str(stats.get('morning', 0))
                         afternoon_count.value = str(stats.get('afternoon', 0))
                         morning_count.update()
                         afternoon_count.update()
                         
-                        # Show success message
+                        # Reload recent scans to show the new entry
+                        load_recent_scans(current_time_slot)
+                        
+                        # Show snackbar with updated info
                         self.show_snackbar(
-                            f"✅ {student.get('name', school_id)} checked in for {current_time_slot.upper()}!", 
+                            f"✅ {student_name} checked in for {current_time_slot.upper()}!", 
                             ft.Colors.GREEN
                         )
                         
-                        # Reload recent scans
-                        load_recent_scans(current_time_slot)
+                        # Keep success message visible for 2.5 seconds
+                        time.sleep(2.5)
+                        scan_result_container.visible = False
+                        scan_result_container.update()
                     else:
+                        # Show failure feedback
+                        scan_result_container.bgcolor = ft.Colors.RED_100
+                        scan_result_container.content.value = "❌ Failed to record attendance"
+                        scan_result_container.content.color = ft.Colors.RED_700
+                        scan_result_container.visible = True
+                        scan_result_container.update()
+                        
                         self.show_snackbar("Failed to record attendance", ft.Colors.RED)
+                        
+                        time.sleep(2)
+                        scan_result_container.visible = False
+                        scan_result_container.update()
                 except Exception as e:
                     print(f"Error processing scan: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+                    # Show error feedback
+                    scan_result_container.bgcolor = ft.Colors.RED_100
+                    scan_result_container.content.value = f"❌ Error: {str(e)[:30]}"
+                    scan_result_container.content.color = ft.Colors.RED_700
+                    scan_result_container.visible = True
+                    scan_result_container.update()
+                    
                     self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+                    
+                    time.sleep(2)
+                    scan_result_container.visible = False
+                    scan_result_container.update()
             
             # Run in background thread to avoid UI freeze
             threading.Thread(target=_process_in_background, daemon=True).start()
         
         def on_qr_detected(qr_data: str):
             """Callback when QR code is detected by camera."""
-            process_scan(qr_data)
+            print(f"DEBUG: on_qr_detected called with: {qr_data}")
+            try:
+                process_scan(qr_data)
+            except Exception as e:
+                print(f"ERROR in on_qr_detected: {e}")
+                import traceback
+                traceback.print_exc()
         
         def handle_manual_scan(e):
             """Handle manual ID entry."""
@@ -468,6 +605,9 @@ class ScanView(BaseView):
                         camera_container,
                         camera_status,
                         
+                        # Scan result feedback
+                        scan_result_container,
+                        
                         # Manual input
                         ft.Row(
                             [
@@ -485,13 +625,23 @@ class ScanView(BaseView):
                         
                         ft.Divider(),
                         
-                        # Recent activity
-                        ft.Text("Recent Activity", weight=ft.FontWeight.BOLD),
+                        # Recent activity header
+                        ft.Row(
+                            [
+                                ft.Icon(ft.Icons.HISTORY, color=PRIMARY_COLOR, size=20),
+                                ft.Text("Recent Activity", weight=ft.FontWeight.BOLD, size=16)
+                            ],
+                            spacing=10,
+                            alignment=ft.MainAxisAlignment.START
+                        ),
+                        
                         ft.Container(
                             content=scan_log,
-                            height=200,
+                            height=220,
                             border=ft.border.all(1, ft.Colors.GREY_300),
-                            border_radius=10
+                            border_radius=10,
+                            bgcolor=ft.Colors.GREY_50,
+                            padding=10
                         )
                     ],
                     spacing=15,

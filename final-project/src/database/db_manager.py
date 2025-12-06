@@ -255,23 +255,50 @@ class Database:
         return attendance_log
     
     def get_attendance_summary(self, event_id: str) -> Dict:
-        """Get attendance summary by time slot."""
-        query = """
-        SELECT time_slot, COUNT(DISTINCT user_id) as count
-        FROM attendance
-        WHERE event_id = ?
-        GROUP BY time_slot
-        """
-        results = self._execute(query, (event_id,), fetch_all=True)
-        
-        summary = {'morning': 0, 'afternoon': 0}
-        if results:
-            for row in results:
-                time_slot, count = row
-                if time_slot in summary:
-                    summary[time_slot] = count
-        
-        return summary
+        """Get attendance summary by time slot using new database structure."""
+        try:
+            # Get attendance by section which has the new timeslot structure
+            attendance_by_section = self.get_attendance_by_section(event_id)
+            
+            morning_count = 0
+            afternoon_count = 0
+            
+            # Count Present status for each time slot
+            for section_name, students in attendance_by_section.items():
+                for student in students:
+                    if student.get('morning_status') == 'Present':
+                        morning_count += 1
+                    if student.get('afternoon_status') == 'Present':
+                        afternoon_count += 1
+            
+            return {
+                'morning': morning_count,
+                'afternoon': afternoon_count
+            }
+        except Exception as e:
+            print(f"Error getting attendance summary: {e}")
+            
+            # Fallback to old attendance table if new structure fails
+            try:
+                query = """
+                SELECT time_slot, COUNT(DISTINCT user_id) as count
+                FROM attendance
+                WHERE event_id = ?
+                GROUP BY time_slot
+                """
+                results = self._execute(query, (event_id,), fetch_all=True)
+                
+                summary = {'morning': 0, 'afternoon': 0}
+                if results:
+                    for row in results:
+                        time_slot, count = row
+                        if time_slot in summary:
+                            summary[time_slot] = count
+                
+                return summary
+            except Exception as fallback_error:
+                print(f"Fallback error: {fallback_error}")
+                return {'morning': 0, 'afternoon': 0}
 
     # User authentication
     def authenticate_user(self, username: str, password: str) -> Optional[str]:

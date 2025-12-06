@@ -132,13 +132,17 @@ class EventView(BaseView):
                 try:
                     print("DEBUG: Export to PDF button clicked")
                     
-                    # Create exports folder
-                    export_dir = "exports"
+                    # Create exports folder with absolute path
+                    export_dir = os.path.abspath("exports")
                     os.makedirs(export_dir, exist_ok=True)
+                    print(f"DEBUG: Export directory: {export_dir}")
+                    
+                    # Sanitize event name for filename
+                    safe_event_name = "".join(c for c in event['name'] if c.isalnum() or c in (' ', '-', '_')).strip()
                     
                     # Generate filename
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = os.path.join(export_dir, f"Attendance_{event['name']}_{timestamp}.pdf")
+                    filename = os.path.join(export_dir, f"Attendance_{safe_event_name}_{timestamp}.pdf")
                     
                     print(f"DEBUG: Exporting to {filename}")
                     
@@ -146,8 +150,15 @@ class EventView(BaseView):
                     exporter = AttendancePDFExporter(self.db)
                     result = exporter.export_attendance(event_id, filename)
                     
-                    print(f"DEBUG: Export successful, result: {result}")
-                    self.show_snackbar(f"✅ PDF exported: {filename}", ft.Colors.GREEN)
+                    # Verify file was created
+                    if os.path.exists(filename):
+                        file_size = os.path.getsize(filename)
+                        print(f"DEBUG: PDF created successfully, size: {file_size} bytes")
+                        print(f"DEBUG: Export result: {result}")
+                        self.show_snackbar(f"✅ PDF exported to exports folder", ft.Colors.GREEN)
+                    else:
+                        print(f"DEBUG: PDF file was not created at {filename}")
+                        raise FileNotFoundError(f"PDF file was not created: {filename}")
                     
                 except Exception as ex:
                     print(f"Export error: {ex}")
