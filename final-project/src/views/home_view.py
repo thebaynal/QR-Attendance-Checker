@@ -4,6 +4,7 @@
 import flet as ft
 from views.base_view import BaseView
 from config.constants import PRIMARY_COLOR
+from datetime import datetime
 
 
 class HomeView(BaseView):
@@ -13,6 +14,48 @@ class HomeView(BaseView):
         """Build and return the home view with modern design."""
         try:
             events = self.db.get_all_events()
+
+            def is_event_upcoming(event_date_str: str) -> bool:
+                """Check if event date is in the future."""
+                try:
+                    # Parse the event date (format: "Month Day, Year")
+                    event_date = datetime.strptime(event_date_str, "%B %d, %Y").date()
+                    today = datetime.now().date()
+                    return event_date > today
+                except:
+                    # If parsing fails, assume it's not upcoming
+                    return False
+
+            def handle_scan_click(event_id: str, event_date: str, event_name: str):
+                """Handle scan button click with upcoming event check."""
+                if is_event_upcoming(event_date):
+                    # Show warning dialog
+                    dialog = ft.AlertDialog(
+                        modal=True,
+                        title=ft.Row(
+                            [
+                                ft.Icon(ft.Icons.SCHEDULE, color=ft.Colors.ORANGE_700, size=28),
+                                ft.Text("Event Not Started", weight=ft.FontWeight.BOLD),
+                            ],
+                            spacing=8,
+                        ),
+                        content=ft.Text(
+                            f"The event '{event_name}' is scheduled for {event_date}.\n\n"
+                            "Attendance scanning is only available on or after the event date.",
+                            size=14,
+                        ),
+                        actions=[
+                            ft.TextButton(
+                                "OK",
+                                on_click=lambda e: self.page.close(dialog),
+                            ),
+                        ],
+                        actions_alignment=ft.MainAxisAlignment.END,
+                    )
+                    self.page.open(dialog)
+                else:
+                    # Navigate to scan view
+                    self.page.go(f"/scan/{event_id}")
 
             def delete_event_handler(event_id: str, event_name: str):
                 """Handle event deletion with modern confirmation dialog."""
@@ -71,6 +114,9 @@ class HomeView(BaseView):
                 if not description or description == "No description":
                     description = "📋 No additional details provided for this event"
                 
+                # Check if event is upcoming
+                is_upcoming = is_event_upcoming(event_data['date'])
+                
                 return ft.Container(
                     content=ft.Card(
                         content=ft.Container(
@@ -85,21 +131,38 @@ class HomeView(BaseView):
                                             ),
                                             width=56,
                                             height=56,
-                                            bgcolor=PRIMARY_COLOR,
+                                            bgcolor=ft.Colors.GREY_400 if is_upcoming else PRIMARY_COLOR,
                                             border_radius=16,
                                             alignment=ft.alignment.center,
                                             shadow=ft.BoxShadow(
                                                 spread_radius=0,
                                                 blur_radius=8,
-                                                color=ft.Colors.with_opacity(0.2, PRIMARY_COLOR),
+                                                color=ft.Colors.with_opacity(0.2, ft.Colors.GREY_400 if is_upcoming else PRIMARY_COLOR),
                                                 offset=ft.Offset(0, 2),
                                             ),
                                         ),
-                                        title=ft.Text(
-                                            event_data['name'],
-                                            weight=ft.FontWeight.W_700,
-                                            size=18,
-                                            color=ft.Colors.GREY_900,
+                                        title=ft.Row(
+                                            [
+                                                ft.Text(
+                                                    event_data['name'],
+                                                    weight=ft.FontWeight.W_700,
+                                                    size=18,
+                                                    color=ft.Colors.GREY_900,
+                                                ),
+                                                ft.Container(
+                                                    content=ft.Text(
+                                                        "UPCOMING",
+                                                        size=10,
+                                                        weight=ft.FontWeight.BOLD,
+                                                        color=ft.Colors.WHITE,
+                                                    ),
+                                                    bgcolor=ft.Colors.ORANGE_400,
+                                                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                                                    border_radius=8,
+                                                    visible=is_upcoming,
+                                                ),
+                                            ],
+                                            spacing=8,
                                         ),
                                         subtitle=ft.Container(
                                             content=ft.Row(
@@ -132,7 +195,8 @@ class HomeView(BaseView):
                                                 ft.PopupMenuItem(
                                                     text="Start Scanning",
                                                     icon=ft.Icons.QR_CODE_SCANNER,
-                                                    on_click=lambda e, eid=event_id: self.page.go(f"/scan/{eid}")
+                                                    on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
+                                                        handle_scan_click(eid, edate, ename)
                                                 ),
                                                 ft.PopupMenuItem(),
                                                 ft.PopupMenuItem(
@@ -188,9 +252,10 @@ class HomeView(BaseView):
                                                             spacing=4,
                                                             tight=True,
                                                         ),
-                                                        on_click=lambda e, eid=event_id: self.page.go(f"/scan/{eid}"),
+                                                        on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
+                                                            handle_scan_click(eid, edate, ename),
                                                         style=ft.ButtonStyle(
-                                                            bgcolor=PRIMARY_COLOR,
+                                                            bgcolor=ft.Colors.GREY_400 if is_upcoming else PRIMARY_COLOR,
                                                             color=ft.Colors.WHITE,
                                                         ),
                                                     ),
