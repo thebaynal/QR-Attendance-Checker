@@ -1,5 +1,5 @@
 # views/home_view.py
-"""Modern home view with sorting and enhanced visual design."""
+"""Premium home view with advanced typography and styling."""
 
 import flet as ft
 from views.base_view import BaseView
@@ -8,25 +8,22 @@ from datetime import datetime
 
 
 class HomeView(BaseView):
-    """Home screen with sorting, filters, and polished design."""
+    """Home screen with premium styling, sorting, and filters."""
 
     def build(self, sort_option="date_desc", filter_option="all"):
-        """Build and return the enhanced home view."""
+        """Build and return the premium styled home view."""
         try:
             events = self.db.get_all_events()
 
             def parse_event_date(event_date_str: str):
                 """Parse event date string handling multiple formats."""
                 try:
-                    # Try full month format first: "November 24, 2025"
                     return datetime.strptime(event_date_str, "%B %d, %Y").date()
                 except:
                     try:
-                        # Try abbreviated month with period: "Nov. 24, 2025"
                         return datetime.strptime(event_date_str, "%b. %d, %Y").date()
                     except:
                         try:
-                            # Try abbreviated month without period: "Nov 24, 2025"
                             return datetime.strptime(event_date_str, "%b %d, %Y").date()
                         except:
                             return None
@@ -52,21 +49,17 @@ class HomeView(BaseView):
                 events_list = [(eid, data) for eid, data in events_dict.items()]
                 
                 if sort_option == "date_desc":
-                    # Newest first
                     events_list.sort(
                         key=lambda x: parse_event_date(x[1]['date']) or datetime.min.date(),
                         reverse=True
                     )
                 elif sort_option == "date_asc":
-                    # Oldest first
                     events_list.sort(
                         key=lambda x: parse_event_date(x[1]['date']) or datetime.min.date()
                     )
                 elif sort_option == "name_asc":
-                    # A-Z
                     events_list.sort(key=lambda x: x[1]['name'].lower())
                 elif sort_option == "name_desc":
-                    # Z-A
                     events_list.sort(key=lambda x: x[1]['name'].lower(), reverse=True)
                 
                 return events_list
@@ -106,7 +99,12 @@ class HomeView(BaseView):
                         title=ft.Row(
                             [
                                 ft.Icon(ft.Icons.SCHEDULE, color=ft.Colors.ORANGE_700, size=28),
-                                ft.Text("Event Not Started", weight=ft.FontWeight.BOLD, size=18),
+                                ft.Text(
+                                    "Event Not Started", 
+                                    weight=ft.FontWeight.BOLD, 
+                                    size=19,
+                                    color=ft.Colors.GREY_900,
+                                ),
                             ],
                             spacing=10,
                         ),
@@ -116,6 +114,7 @@ class HomeView(BaseView):
                                 "Attendance scanning is only available on or after the event date.",
                                 size=15,
                                 color=ft.Colors.GREY_700,
+                                weight=ft.FontWeight.W_400,
                             ),
                             padding=ft.padding.only(top=10),
                         ),
@@ -151,7 +150,12 @@ class HomeView(BaseView):
                     title=ft.Row(
                         [
                             ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=ft.Colors.RED_600, size=28),
-                            ft.Text("Delete Event?", weight=ft.FontWeight.BOLD, size=18),
+                            ft.Text(
+                                "Delete Event?", 
+                                weight=ft.FontWeight.BOLD, 
+                                size=19,
+                                color=ft.Colors.GREY_900,
+                            ),
                         ],
                         spacing=10,
                     ),
@@ -162,6 +166,7 @@ class HomeView(BaseView):
                                     f"Are you sure you want to delete:",
                                     size=15,
                                     color=ft.Colors.GREY_700,
+                                    weight=ft.FontWeight.W_400,
                                 ),
                                 ft.Container(
                                     content=ft.Text(
@@ -179,6 +184,7 @@ class HomeView(BaseView):
                                     size=13,
                                     color=ft.Colors.RED_700,
                                     italic=True,
+                                    weight=ft.FontWeight.W_400,
                                 ),
                             ],
                             spacing=12,
@@ -205,7 +211,7 @@ class HomeView(BaseView):
                 self.page.open(dialog)
 
             def create_event_card(event_id: str, event_data: dict):
-                """Create an enhanced card for displaying an event."""
+                """Create a premium styled card for displaying an event."""
                 description = event_data.get('desc', '').strip()
                 if not description or description == "No description":
                     description = "No additional details provided"
@@ -216,241 +222,270 @@ class HomeView(BaseView):
                 # Determine card styling based on event status
                 if is_today:
                     card_color = ft.Colors.BLUE_50
-                    icon_color = ft.Colors.BLUE_600
                     icon_bg = ft.Colors.BLUE_600
                     badge_text = "TODAY"
                     badge_color = ft.Colors.BLUE_600
                     scan_button_color = ft.Colors.BLUE_600
                     scan_button_text = "Scan Now"
+                    card_border = ft.Colors.BLUE_200
                 elif is_upcoming:
                     card_color = ft.Colors.ORANGE_50
-                    icon_color = ft.Colors.ORANGE_600
                     icon_bg = ft.Colors.ORANGE_400
                     badge_text = "UPCOMING"
                     badge_color = ft.Colors.ORANGE_500
                     scan_button_color = ft.Colors.GREY_300
                     scan_button_text = "Scan QR"
+                    card_border = ft.Colors.ORANGE_200
                 else:
                     card_color = ft.Colors.WHITE
-                    icon_color = ft.Colors.GREEN_600
                     icon_bg = PRIMARY_COLOR
                     badge_text = None
                     badge_color = None
                     scan_button_color = ft.Colors.RED_400
                     scan_button_text = "Past Event"
+                    card_border = ft.Colors.GREY_200
                 
                 return ft.Container(
-                    content=ft.Card(
-                        content=ft.Container(
-                            content=ft.Column(
-                                [
-                                    # Event header
-                                    ft.Container(
-                                        content=ft.Row(
-                                            [
-                                                # Event icon
-                                                ft.Container(
-                                                    content=ft.Icon(
-                                                        ft.Icons.EVENT_ROUNDED,
-                                                        color=ft.Colors.WHITE,
-                                                        size=30,
-                                                    ),
-                                                    width=60,
-                                                    height=60,
-                                                    bgcolor=icon_bg,
-                                                    border_radius=16,
-                                                    alignment=ft.alignment.center,
-                                                    shadow=ft.BoxShadow(
-                                                        spread_radius=0,
-                                                        blur_radius=12,
-                                                        color=ft.Colors.with_opacity(0.25, icon_bg),
-                                                        offset=ft.Offset(0, 4),
-                                                    ),
+                    content=ft.Container(
+                        content=ft.Column(
+                            [
+                                # Event header with premium styling
+                                ft.Container(
+                                    content=ft.Row(
+                                        [
+                                            # Premium icon with gradient-like shadow
+                                            ft.Container(
+                                                content=ft.Icon(
+                                                    ft.Icons.EVENT_ROUNDED,
+                                                    color=ft.Colors.WHITE,
+                                                    size=32,
                                                 ),
-                                                # Event details - with proper wrapping
-                                                ft.Container(
-                                                    content=ft.Column(
+                                                width=64,
+                                                height=64,
+                                                bgcolor=icon_bg,
+                                                border_radius=18,
+                                                alignment=ft.alignment.center,
+                                                shadow=ft.BoxShadow(
+                                                    spread_radius=0,
+                                                    blur_radius=16,
+                                                    color=ft.Colors.with_opacity(0.35, icon_bg),
+                                                    offset=ft.Offset(0, 6),
+                                                ),
+                                            ),
+                                            # Event details with text shadows
+                                            ft.Container(
+                                                content=ft.Column(
+                                                    [
+                                                        # Event name with badge
+                                                        ft.Row(
+                                                            [
+                                                                ft.Container(
+                                                                    content=ft.Text(
+                                                                        event_data['name'],
+                                                                        weight=ft.FontWeight.BOLD,
+                                                                        size=18,
+                                                                        color=ft.Colors.GREY_900,
+                                                                        max_lines=2,
+                                                                        overflow=ft.TextOverflow.ELLIPSIS,
+                                                                    ),
+                                                                    expand=True,
+                                                                ),
+                                                                ft.Container(
+                                                                    content=ft.Text(
+                                                                        badge_text,
+                                                                        size=9,
+                                                                        weight=ft.FontWeight.BOLD,
+                                                                        color=ft.Colors.WHITE,
+                                                                    ),
+                                                                    bgcolor=badge_color,
+                                                                    padding=ft.padding.symmetric(horizontal=10, vertical=4),
+                                                                    border_radius=12,
+                                                                    visible=badge_text is not None,
+                                                                    shadow=ft.BoxShadow(
+                                                                        spread_radius=0,
+                                                                        blur_radius=8,
+                                                                        color=ft.Colors.with_opacity(0.3, badge_color if badge_color else ft.Colors.TRANSPARENT),
+                                                                        offset=ft.Offset(0, 2),
+                                                                    ) if badge_text else None,
+                                                                ),
+                                                            ],
+                                                            spacing=8,
+                                                            alignment=ft.MainAxisAlignment.START,
+                                                            vertical_alignment=ft.CrossAxisAlignment.START,
+                                                        ),
+                                                        # Date with icon
+                                                        ft.Row(
+                                                            [
+                                                                ft.Icon(
+                                                                    ft.Icons.CALENDAR_TODAY_ROUNDED,
+                                                                    size=15,
+                                                                    color=ft.Colors.GREY_500,
+                                                                ),
+                                                                ft.Text(
+                                                                    event_data['date'],
+                                                                    size=14,
+                                                                    color=ft.Colors.GREY_600,
+                                                                    weight=ft.FontWeight.W_500,
+                                                                ),
+                                                            ],
+                                                            spacing=6,
+                                                        ),
+                                                    ],
+                                                    spacing=8,
+                                                    tight=True,
+                                                ),
+                                                expand=True,
+                                            ),
+                                            # Menu button - fixed position
+                                            ft.Container(
+                                                content=ft.PopupMenuButton(
+                                                    icon=ft.Icons.MORE_VERT_ROUNDED,
+                                                    icon_color=ft.Colors.GREY_600,
+                                                    icon_size=22,
+                                                    items=[
+                                                        ft.PopupMenuItem(
+                                                            text="View Attendance",
+                                                            icon=ft.Icons.PEOPLE_OUTLINE_ROUNDED,
+                                                            on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
+                                                        ),
+                                                        ft.PopupMenuItem(
+                                                            text="Start Scanning",
+                                                            icon=ft.Icons.QR_CODE_SCANNER_ROUNDED,
+                                                            on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
+                                                                handle_scan_click(eid, edate, ename)
+                                                        ),
+                                                        ft.PopupMenuItem(),
+                                                        ft.PopupMenuItem(
+                                                            text="Delete Event",
+                                                            icon=ft.Icons.DELETE_OUTLINE_ROUNDED,
+                                                            on_click=lambda e, eid=event_id, name=event_data['name']: 
+                                                                delete_event_handler(eid, name)
+                                                        ),
+                                                    ]
+                                                ),
+                                                width=40,
+                                                alignment=ft.alignment.top_right,
+                                            ),
+                                        ],
+                                        spacing=14,
+                                        alignment=ft.MainAxisAlignment.START,
+                                    ),
+                                    padding=ft.padding.all(20),
+                                ),
+                                # Elegant divider
+                                ft.Container(
+                                    height=1,
+                                    bgcolor=ft.Colors.GREY_200,
+                                    margin=ft.margin.symmetric(horizontal=20),
+                                ),
+                                # Description with premium styling
+                                ft.Container(
+                                    content=ft.Row(
+                                        [
+                                            ft.Icon(
+                                                ft.Icons.DESCRIPTION_OUTLINED,
+                                                size=18,
+                                                color=ft.Colors.GREY_400,
+                                            ),
+                                            ft.Text(
+                                                description,
+                                                size=14,
+                                                color=ft.Colors.GREY_600,
+                                                max_lines=2,
+                                                overflow=ft.TextOverflow.ELLIPSIS,
+                                                italic=not event_data.get('desc') or event_data['desc'] == "No description",
+                                                weight=ft.FontWeight.W_400,
+                                            ),
+                                        ],
+                                        spacing=10,
+                                    ),
+                                    padding=ft.padding.symmetric(horizontal=20, vertical=16),
+                                ),
+                                # Elegant divider
+                                ft.Container(
+                                    height=1,
+                                    bgcolor=ft.Colors.GREY_200,
+                                    margin=ft.margin.symmetric(horizontal=20),
+                                ),
+                                # Action buttons with premium styling
+                                ft.Container(
+                                    content=ft.Row(
+                                        [
+                                            ft.Container(
+                                                content=ft.TextButton(
+                                                    content=ft.Row(
                                                         [
-                                                            # Event name with badge
-                                                            ft.Row(
-                                                                [
-                                                                    ft.Container(
-                                                                        content=ft.Text(
-                                                                            event_data['name'],
-                                                                            weight=ft.FontWeight.BOLD,
-                                                                            size=17,
-                                                                            color=ft.Colors.GREY_900,
-                                                                            max_lines=2,
-                                                                            overflow=ft.TextOverflow.ELLIPSIS,
-                                                                        ),
-                                                                        expand=True,
-                                                                    ),
-                                                                    ft.Container(
-                                                                        content=ft.Text(
-                                                                            badge_text,
-                                                                            size=9,
-                                                                            weight=ft.FontWeight.BOLD,
-                                                                            color=ft.Colors.WHITE,
-                                                                        ),
-                                                                        bgcolor=badge_color,
-                                                                        padding=ft.padding.symmetric(horizontal=8, vertical=3),
-                                                                        border_radius=10,
-                                                                        visible=badge_text is not None,
-                                                                    ),
-                                                                ],
-                                                                spacing=8,
-                                                                alignment=ft.MainAxisAlignment.START,
-                                                                vertical_alignment=ft.CrossAxisAlignment.START,
-                                                            ),
-                                                            # Date
-                                                            ft.Row(
-                                                                [
-                                                                    ft.Icon(
-                                                                        ft.Icons.CALENDAR_TODAY_ROUNDED,
-                                                                        size=15,
-                                                                        color=ft.Colors.GREY_600,
-                                                                    ),
-                                                                    ft.Text(
-                                                                        event_data['date'],
-                                                                        size=13,
-                                                                        color=ft.Colors.GREY_600,
-                                                                        weight=ft.FontWeight.W_500,
-                                                                    ),
-                                                                ],
-                                                                spacing=6,
+                                                            ft.Icon(ft.Icons.PEOPLE_OUTLINE_ROUNDED, size=20, color=PRIMARY_COLOR),
+                                                            ft.Text(
+                                                                "View Details", 
+                                                                size=14, 
+                                                                weight=ft.FontWeight.W_600,
+                                                                color=PRIMARY_COLOR,
                                                             ),
                                                         ],
                                                         spacing=6,
                                                         tight=True,
                                                     ),
-                                                    expand=True,
-                                                ),
-                                                # Menu button - fixed position
-                                                ft.Container(
-                                                    content=ft.PopupMenuButton(
-                                                        icon=ft.Icons.MORE_VERT_ROUNDED,
-                                                        icon_color=ft.Colors.GREY_700,
-                                                        icon_size=22,
-                                                        items=[
-                                                            ft.PopupMenuItem(
-                                                                text="View Attendance",
-                                                                icon=ft.Icons.PEOPLE_OUTLINE_ROUNDED,
-                                                                on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
-                                                            ),
-                                                            ft.PopupMenuItem(
-                                                                text="Start Scanning",
-                                                                icon=ft.Icons.QR_CODE_SCANNER_ROUNDED,
-                                                                on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
-                                                                    handle_scan_click(eid, edate, ename)
-                                                            ),
-                                                            ft.PopupMenuItem(),
-                                                            ft.PopupMenuItem(
-                                                                text="Delete Event",
-                                                                icon=ft.Icons.DELETE_OUTLINE_ROUNDED,
-                                                                on_click=lambda e, eid=event_id, name=event_data['name']: 
-                                                                    delete_event_handler(eid, name)
-                                                            ),
-                                                        ]
+                                                    on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}"),
+                                                    style=ft.ButtonStyle(
+                                                        overlay_color=ft.Colors.with_opacity(0.08, PRIMARY_COLOR),
+                                                        padding=ft.padding.symmetric(horizontal=16, vertical=14),
+                                                        shape=ft.RoundedRectangleBorder(radius=10),
                                                     ),
-                                                    width=40,
-                                                    alignment=ft.alignment.top_right,
                                                 ),
-                                            ],
-                                            spacing=12,
-                                            alignment=ft.MainAxisAlignment.START,
-                                        ),
-                                        padding=ft.padding.all(20),
-                                    ),
-                                    # Description with divider
-                                    ft.Divider(height=1, color=ft.Colors.GREY_200),
-                                    ft.Container(
-                                        content=ft.Row(
-                                            [
-                                                ft.Icon(
-                                                    ft.Icons.DESCRIPTION_OUTLINED,
-                                                    size=18,
-                                                    color=ft.Colors.GREY_500,
-                                                ),
-                                                ft.Text(
-                                                    description,
-                                                    size=14,
-                                                    color=ft.Colors.GREY_700,
-                                                    max_lines=2,
-                                                    overflow=ft.TextOverflow.ELLIPSIS,
-                                                    italic=not event_data.get('desc') or event_data['desc'] == "No description",
-                                                    expand=True,
-                                                ),
-                                            ],
-                                            spacing=10,
-                                        ),
-                                        padding=ft.padding.symmetric(horizontal=20, vertical=14),
-                                    ),
-                                    # Action buttons
-                                    ft.Divider(height=1, color=ft.Colors.GREY_200),
-                                    ft.Container(
-                                        content=ft.Row(
-                                            [
-                                                ft.Container(
-                                                    content=ft.TextButton(
-                                                        content=ft.Row(
-                                                            [
-                                                                ft.Icon(ft.Icons.PEOPLE_OUTLINE_ROUNDED, size=20),
-                                                                ft.Text("View Details", size=14, weight=ft.FontWeight.W_600),
-                                                            ],
-                                                            spacing=6,
-                                                            tight=True,
-                                                        ),
-                                                        on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}"),
-                                                        style=ft.ButtonStyle(
-                                                            color=PRIMARY_COLOR,
-                                                            overlay_color=ft.Colors.with_opacity(0.08, PRIMARY_COLOR),
-                                                            padding=ft.padding.symmetric(horizontal=16, vertical=12),
-                                                        ),
+                                                expand=True,
+                                            ),
+                                            ft.Container(
+                                                width=1,
+                                                height=35,
+                                                bgcolor=ft.Colors.GREY_200,
+                                            ),
+                                            ft.Container(
+                                                content=ft.ElevatedButton(
+                                                    content=ft.Row(
+                                                        [
+                                                            ft.Icon(ft.Icons.QR_CODE_SCANNER_ROUNDED, size=20),
+                                                            ft.Text(
+                                                                scan_button_text, 
+                                                                size=14, 
+                                                                weight=ft.FontWeight.W_600,
+                                                            ),
+                                                        ],
+                                                        spacing=6,
+                                                        tight=True,
                                                     ),
-                                                    expand=True,
-                                                ),
-                                                ft.Container(
-                                                    width=1,
-                                                    height=30,
-                                                    bgcolor=ft.Colors.GREY_200,
-                                                ),
-                                                ft.Container(
-                                                    content=ft.ElevatedButton(
-                                                        content=ft.Row(
-                                                            [
-                                                                ft.Icon(ft.Icons.QR_CODE_SCANNER_ROUNDED, size=20),
-                                                                ft.Text(scan_button_text, size=14, weight=ft.FontWeight.W_600),
-                                                            ],
-                                                            spacing=6,
-                                                            tight=True,
-                                                        ),
-                                                        on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
-                                                            handle_scan_click(eid, edate, ename),
-                                                        disabled=is_upcoming,
-                                                        style=ft.ButtonStyle(
-                                                            bgcolor=scan_button_color,
-                                                            color=ft.Colors.WHITE,
-                                                            elevation=0,
-                                                            padding=ft.padding.symmetric(horizontal=16, vertical=12),
-                                                            shape=ft.RoundedRectangleBorder(radius=8),
-                                                        ),
+                                                    on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
+                                                        handle_scan_click(eid, edate, ename),
+                                                    disabled=is_upcoming,
+                                                    style=ft.ButtonStyle(
+                                                        bgcolor=scan_button_color,
+                                                        color=ft.Colors.WHITE,
+                                                        elevation=0,
+                                                        padding=ft.padding.symmetric(horizontal=16, vertical=14),
+                                                        shape=ft.RoundedRectangleBorder(radius=10),
+                                                        shadow_color=ft.Colors.with_opacity(0.2, scan_button_color),
                                                     ),
-                                                    expand=True,
                                                 ),
-                                            ],
-                                            spacing=0,
-                                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                        ),
-                                        padding=ft.padding.symmetric(horizontal=12, vertical=10),
+                                                expand=True,
+                                            ),
+                                        ],
+                                        spacing=0,
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                     ),
-                                ],
-                                spacing=0,
-                            ),
-                            bgcolor=card_color,
-                            border_radius=16,
+                                    padding=ft.padding.symmetric(horizontal=12, vertical=12),
+                                ),
+                            ],
+                            spacing=0,
                         ),
-                        elevation=3,
-                        surface_tint_color=ft.Colors.TRANSPARENT,
+                        bgcolor=card_color,
+                        border_radius=18,
+                        border=ft.border.all(1, card_border),
+                    ),
+                    shadow=ft.BoxShadow(
+                        spread_radius=0,
+                        blur_radius=12,
+                        color=ft.Colors.with_opacity(0.08, ft.Colors.BLACK),
+                        offset=ft.Offset(0, 4),
                     ),
                     margin=ft.margin.only(bottom=16),
                 )
@@ -459,7 +494,7 @@ class HomeView(BaseView):
             sorted_events = sort_events(events)
             filtered_events = filter_events(sorted_events)
 
-            # Header with title and stats
+            # Premium header with enhanced typography
             header = ft.Container(
                 content=ft.Column(
                     [
@@ -468,15 +503,15 @@ class HomeView(BaseView):
                                 ft.Column(
                                     [
                                         ft.Text(
-                                            "My Events",
-                                            size=32,
+                                            "Events Lists",
+                                            size=34,
                                             weight=ft.FontWeight.BOLD,
                                             color=ft.Colors.GREY_900,
                                         ),
                                         ft.Text(
                                             f"{len(filtered_events)} of {len(events)} event{'s' if len(events) != 1 else ''}",
                                             size=15,
-                                            color=ft.Colors.GREY_600,
+                                            color=ft.Colors.GREY_500,
                                             weight=ft.FontWeight.W_500,
                                         ),
                                     ],
@@ -487,7 +522,11 @@ class HomeView(BaseView):
                                     content=ft.Row(
                                         [
                                             ft.Icon(ft.Icons.ADD_ROUNDED, size=22),
-                                            ft.Text("New Event", size=15, weight=ft.FontWeight.BOLD),
+                                            ft.Text(
+                                                "New Event", 
+                                                size=15, 
+                                                weight=ft.FontWeight.BOLD,
+                                            ),
                                         ],
                                         spacing=8,
                                         tight=True,
@@ -498,18 +537,18 @@ class HomeView(BaseView):
                                         color=ft.Colors.WHITE,
                                         padding=ft.padding.symmetric(horizontal=24, vertical=16),
                                         shape=ft.RoundedRectangleBorder(radius=14),
-                                        elevation=3,
-                                        shadow_color=ft.Colors.with_opacity(0.3, PRIMARY_COLOR),
+                                        elevation=4,
+                                        shadow_color=ft.Colors.with_opacity(0.25, PRIMARY_COLOR),
                                     ),
                                 ),
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
-                        # Sort and Filter controls
+                        # Premium Sort and Filter controls
                         ft.Container(
                             content=ft.Row(
                                 [
-                                    # Sort dropdown
+                                    # Sort dropdown with premium styling
                                     ft.Container(
                                         content=ft.Row(
                                             [
@@ -519,31 +558,44 @@ class HomeView(BaseView):
                                                         size=20, 
                                                         color=PRIMARY_COLOR
                                                     ),
-                                                    padding=ft.padding.only(right=4),
+                                                    padding=ft.padding.only(right=6),
                                                 ),
-                                                ft.Dropdown(
-                                                    value=sort_option,
-                                                    on_change=handle_sort_change,
-                                                    options=[
-                                                        ft.dropdown.Option("date_desc", "Newest First"),
-                                                        ft.dropdown.Option("date_asc", "Oldest First"),
-                                                        ft.dropdown.Option("name_asc", "A → Z"),
-                                                        ft.dropdown.Option("name_desc", "Z → A"),
-                                                    ],
-                                                    text_size=14,
-                                                    width=145,
-                                                    border_color=ft.Colors.GREY_300,
-                                                    focused_border_color=PRIMARY_COLOR,
-                                                    content_padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                                                ft.Container(
+                                                    content=ft.Dropdown(
+                                                        value=sort_option,
+                                                        on_change=handle_sort_change,
+                                                        options=[
+                                                            ft.dropdown.Option("date_desc", "Newest First"),
+                                                            ft.dropdown.Option("date_asc", "Oldest First"),
+                                                            ft.dropdown.Option("name_asc", "A → Z"),
+                                                            ft.dropdown.Option("name_desc", "Z → A"),
+                                                        ],
+                                                        text_size=14,
+                                                        width=140,
+                                                        border_color=ft.Colors.GREY_300,
+                                                        focused_border_color=PRIMARY_COLOR,
+                                                        content_padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                                                    ),
+                                                    expand=True,
                                                 ),
                                             ],
                                             spacing=0,
                                             alignment=ft.MainAxisAlignment.START,
                                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                         ),
+                                        bgcolor=ft.Colors.WHITE,
+                                        border_radius=12,
+                                        padding=ft.padding.only(left=12),
+                                        border=ft.border.all(1, ft.Colors.GREY_300),
+                                        shadow=ft.BoxShadow(
+                                            spread_radius=0,
+                                            blur_radius=4,
+                                            color=ft.Colors.with_opacity(0.06, ft.Colors.BLACK),
+                                            offset=ft.Offset(0, 2),
+                                        ),
                                         expand=True,
                                     ),
-                                    # Filter dropdown
+                                    # Filter dropdown with premium styling
                                     ft.Container(
                                         content=ft.Row(
                                             [
@@ -553,34 +605,47 @@ class HomeView(BaseView):
                                                         size=20, 
                                                         color=PRIMARY_COLOR
                                                     ),
-                                                    padding=ft.padding.only(right=4),
+                                                    padding=ft.padding.only(right=6),
                                                 ),
-                                                ft.Dropdown(
-                                                    value=filter_option,
-                                                    on_change=handle_filter_change,
-                                                    options=[
-                                                        ft.dropdown.Option("all", "All Events"),
-                                                        ft.dropdown.Option("today", "Today"),
-                                                        ft.dropdown.Option("upcoming", "Upcoming"),
-                                                        ft.dropdown.Option("past", "Past Events"),
-                                                    ],
-                                                    text_size=14,
-                                                    width=145,
-                                                    border_color=ft.Colors.GREY_300,
-                                                    focused_border_color=PRIMARY_COLOR,
-                                                    content_padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                                                ft.Container(
+                                                    content=ft.Dropdown(
+                                                        value=filter_option,
+                                                        on_change=handle_filter_change,
+                                                        options=[
+                                                            ft.dropdown.Option("all", "All Events"),
+                                                            ft.dropdown.Option("today", "Today"),
+                                                            ft.dropdown.Option("upcoming", "Upcoming"),
+                                                            ft.dropdown.Option("past", "Past Events"),
+                                                        ],
+                                                        text_size=14,
+                                                        width=140,
+                                                        border_color=ft.Colors.GREY_300,
+                                                        focused_border_color=PRIMARY_COLOR,
+                                                        content_padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                                                    ),
+                                                    expand=True,
                                                 ),
                                             ],
                                             spacing=0,
                                             alignment=ft.MainAxisAlignment.START,
                                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                         ),
+                                        bgcolor=ft.Colors.WHITE,
+                                        border_radius=12,
+                                        padding=ft.padding.only(left=12),
+                                        border=ft.border.all(1, ft.Colors.GREY_300),
+                                        shadow=ft.BoxShadow(
+                                            spread_radius=0,
+                                            blur_radius=4,
+                                            color=ft.Colors.with_opacity(0.06, ft.Colors.BLACK),
+                                            offset=ft.Offset(0, 2),
+                                        ),
                                         expand=True,
                                     ),
                                 ],
                                 spacing=16,
                             ),
-                            padding=ft.padding.only(top=20),
+                            padding=ft.padding.only(top=24),
                         ),
                     ],
                     spacing=0,
@@ -589,7 +654,7 @@ class HomeView(BaseView):
                 bgcolor=ft.Colors.WHITE,
                 shadow=ft.BoxShadow(
                     spread_radius=0,
-                    blur_radius=8,
+                    blur_radius=10,
                     color=ft.Colors.with_opacity(0.06, ft.Colors.BLACK),
                     offset=ft.Offset(0, 2),
                 ),
