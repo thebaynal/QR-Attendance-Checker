@@ -321,9 +321,17 @@ class Database:
         if existing:
             return False
         
-        query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
-        result = self._execute(query, (username, password, full_name, role, datetime.now().isoformat()))
-        return result is not None
+        try:
+            query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (username, password, full_name, role, datetime.now().isoformat()))
+                conn.commit()
+                # If we get here without exception, insert was successful
+                return True
+        except sqlite3.Error as e:
+            print(f"Error creating user: {e}")
+            return False
     
     # database/db_manager.py (Add these methods)
 
