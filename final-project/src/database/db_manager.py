@@ -458,3 +458,17 @@ class Database:
         result = self._execute(query, (event_id, school_id), fetch_one=True)
         
         return result and result[0] == 'Present'
+
+    def get_student_by_id(self, school_id: str) -> dict:
+        """Get student information by school ID."""
+        query = "SELECT school_id, name, year_level, section FROM students_qrcodes WHERE school_id = ?"
+        result = self._execute(query, (school_id,), fetch_one=True)
+        
+        if result:
+            return {
+                'school_id': result[0],
+                'name': result[1],
+                'year_level': result[2],
+                'section': result[3]
+            }
+        return None

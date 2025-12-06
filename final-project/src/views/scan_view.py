@@ -288,33 +288,59 @@ class ScanView(BaseView):
             except Exception as e:
                 print(f"Error updating frame: {e}")
         
-        # In your scan view, update the process_qr_scan function:
-
-        def process_qr_scan(qr_data: str):
-            """Process QR with new database structure."""
-            # Parse QR data (format: school_id|name)
-            parts = qr_data.split('|')
-            if len(parts) < 2:
-                self.show_snackbar("Invalid QR format", ft.Colors.RED)
-                return
+        def process_scan(qr_data: str):
+            """Process QR code scan with new database structure."""
+            def _process_in_background():
+                try:
+                    # Parse QR data (format: school_id|name)
+                    parts = qr_data.split('|')
+                    if len(parts) < 1:
+                        self.show_snackbar("Invalid QR format", ft.Colors.RED)
+                        return
+                    
+                    school_id = parts[0].strip()
+                    current_time_slot = selected_time_slot[0]
+                    
+                    # Check if student exists
+                    student = self.db.get_student_by_id(school_id)
+                    if not student:
+                        self.show_snackbar(f"Student {school_id} not found", ft.Colors.RED)
+                        return
+                    
+                    # Check if already checked in for this time slot
+                    already_checked = self.db.check_timeslot_attendance(event_id, school_id, current_time_slot)
+                    
+                    if already_checked:
+                        self.show_snackbar(f"✅ Already checked in for {current_time_slot.upper()}!", ft.Colors.ORANGE)
+                        return
+                    
+                    # Record attendance
+                    success = self.db.record_timeslot_attendance(event_id, school_id, current_time_slot)
+                    
+                    if success:
+                        # Update stats display
+                        stats = self.db.get_attendance_summary(event_id)
+                        morning_count.value = str(stats.get('morning', 0))
+                        afternoon_count.value = str(stats.get('afternoon', 0))
+                        morning_count.update()
+                        afternoon_count.update()
+                        
+                        # Show success message
+                        self.show_snackbar(
+                            f"✅ {student.get('name', school_id)} checked in for {current_time_slot.upper()}!", 
+                            ft.Colors.GREEN
+                        )
+                        
+                        # Reload recent scans
+                        load_recent_scans(current_time_slot)
+                    else:
+                        self.show_snackbar("Failed to record attendance", ft.Colors.RED)
+                except Exception as e:
+                    print(f"Error processing scan: {e}")
+                    self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
             
-            school_id = parts[0].strip()
-            
-            # Check if already checked in for this time slot
-            already_checked = self.db.check_timeslot_attendance(event_id, school_id, time_slot)
-            
-            if already_checked:
-                self.show_snackbar(f"Already checked in for {time_slot}!", ft.Colors.ORANGE)
-                return
-            
-            # Record attendance
-            success = self.db.record_timeslot_attendance(event_id, school_id, time_slot)
-            
-            if success:
-                self.show_snackbar(f"✅ Checked in for {time_slot}!", ft.Colors.GREEN)
-                # Update UI...
-            else:
-                self.show_snackbar("Failed to record attendance", ft.Colors.RED)
+            # Run in background thread to avoid UI freeze
+            threading.Thread(target=_process_in_background, daemon=True).start()
         
         def on_qr_detected(qr_data: str):
             """Callback when QR code is detected by camera."""

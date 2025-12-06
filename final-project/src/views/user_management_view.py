@@ -240,7 +240,7 @@ class UserManagementView(BaseView):
                                                 spacing=15
                                             ),
                                             padding=20,
-                                            bgcolor=YELLOW_50,
+                                            bgcolor=BLUE_50,
                                             border_radius=10
                                         ),
                                     ],
