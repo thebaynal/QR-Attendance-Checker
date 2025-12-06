@@ -2,8 +2,8 @@
 
 <h2>To-Do List</h2>
 <ul>
-    <li>Make export to CSV per event.</li>
-    <li>Add "Download All QR" in the Generate QR Codes section.</li>
+    <li>Make export to CSV per event.</li> - DONE
+    <li>Add "Download All QR" in the Generate QR Codes section.</li> - DONE
     <li>Add time options: Morning, Afternoon.
         <ul>
             <li>If food, also add Lunch (clickable).</li>
