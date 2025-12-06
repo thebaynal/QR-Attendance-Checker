@@ -13,6 +13,11 @@ class HomeView(BaseView):
         """Build and return the home view with robust error handling."""
         try:
             events = self.db.get_all_events()
+            
+            # Get current user role
+            current_username = self.app.current_user
+            current_user_role = self.db.get_user_role(current_username) if current_username else 'scanner'
+            is_admin = current_user_role and current_user_role.lower() == 'admin'
 
             # Create a scrollable column to hold the event list
             event_list_column = ft.Column(
@@ -30,6 +35,32 @@ class HomeView(BaseView):
                 
                 def create_event_card(event_id: str, event_data: dict):
                     """Create a card for displaying an event."""
+                    # Build menu items based on user role
+                    menu_items = [
+                        ft.PopupMenuItem(
+                            text="View Attendance",
+                            icon=ft.Icons.LIST,
+                            on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
+                        ),
+                        ft.PopupMenuItem(
+                            text="Start Scanning",
+                            icon=ft.Icons.QR_CODE_SCANNER,
+                            on_click=lambda e, eid=event_id: self.page.go(f"/scan/{eid}")
+                        ),
+                    ]
+                    
+                    # Only show delete option for admins
+                    if is_admin:
+                        menu_items.extend([
+                            ft.PopupMenuItem(),  # Divider
+                            ft.PopupMenuItem(
+                                text="Delete Event",
+                                icon=ft.Icons.DELETE,
+                                on_click=lambda e, eid=event_id, name=event_data['name']: 
+                                    delete_event_handler(eid, name)
+                            ),
+                        ])
+                    
                     return ft.Card(
                         elevation=3,
                         content=ft.Container(
@@ -57,25 +88,7 @@ class HomeView(BaseView):
                                                     expand=True
                                                 ),
                                                 ft.PopupMenuButton(
-                                                    items=[
-                                                        ft.PopupMenuItem(
-                                                            text="View Attendance",
-                                                            icon=ft.Icons.LIST,
-                                                            on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
-                                                        ),
-                                                        ft.PopupMenuItem(
-                                                            text="Start Scanning",
-                                                            icon=ft.Icons.QR_CODE_SCANNER,
-                                                            on_click=lambda e, eid=event_id: self.page.go(f"/scan/{eid}")
-                                                        ),
-                                                        ft.PopupMenuItem(),  # Divider
-                                                        ft.PopupMenuItem(
-                                                            text="Delete Event",
-                                                            icon=ft.Icons.DELETE,
-                                                            on_click=lambda e, eid=event_id, name=event_data['name']: 
-                                                                delete_event_handler(eid, name)
-                                                        ),
-                                                    ]
+                                                    items=menu_items
                                                 )
                                             ],
                                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -104,39 +117,47 @@ class HomeView(BaseView):
                 
                 # Create event list or empty state
                 if events:
+                    # Build header with conditional Add button
+                    header_row = [
+                        ft.Column(
+                            [
+                                ft.Text(
+                                    "Events",
+                                    size=18,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.BLACK87
+                                ),
+                                ft.Text(
+                                    f"{len(events)} event{'s' if len(events) != 1 else ''}",
+                                    size=13,
+                                    color=ft.Colors.GREY_600
+                                )
+                            ],
+                            spacing=4
+                        ),
+                        ft.Container(expand=True),  # Spacer
+                    ]
+                    
+                    # Only add the button if user is admin
+                    if is_admin:
+                        header_row.append(
+                            ft.ElevatedButton(
+                                "Add Event",
+                                icon=ft.Icons.ADD,
+                                on_click=lambda e: self.page.go("/create_event"),
+                                style=ft.ButtonStyle(
+                                    bgcolor=PRIMARY_COLOR,
+                                    color=ft.Colors.WHITE,
+                                    padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                                    shape=ft.RoundedRectangleBorder(radius=5)
+                                )
+                            )
+                        )
+                    
                     event_list_column.controls = [
                         ft.Container(
                             content=ft.Row(
-                                [
-                                    ft.Column(
-                                        [
-                                            ft.Text(
-                                                "Events",
-                                                size=18,
-                                                weight=ft.FontWeight.BOLD,
-                                                color=ft.Colors.BLACK87
-                                            ),
-                                            ft.Text(
-                                                f"{len(events)} event{'s' if len(events) != 1 else ''}",
-                                                size=13,
-                                                color=ft.Colors.GREY_600
-                                            )
-                                        ],
-                                        spacing=4
-                                    ),
-                                    ft.Container(expand=True),  # Spacer
-                                    ft.ElevatedButton(
-                                        "Add Event",
-                                        icon=ft.Icons.ADD,
-                                        on_click=lambda e: self.page.go("/create_event"),
-                                        style=ft.ButtonStyle(
-                                            bgcolor=PRIMARY_COLOR,
-                                            color=ft.Colors.WHITE,
-                                            padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                                            shape=ft.RoundedRectangleBorder(radius=5)
-                                        )
-                                    )
-                                ],
+                                header_row,
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 spacing=12
@@ -151,39 +172,47 @@ class HomeView(BaseView):
                         )
                     ]
                 else:
+                    # Build header for empty state with conditional Add button
+                    header_row = [
+                        ft.Column(
+                            [
+                                ft.Text(
+                                    "Events",
+                                    size=18,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.BLACK87
+                                ),
+                                ft.Text(
+                                    "0 events",
+                                    size=13,
+                                    color=ft.Colors.GREY_600
+                                )
+                            ],
+                            spacing=4
+                        ),
+                        ft.Container(expand=True),  # Spacer
+                    ]
+                    
+                    # Only add the button if user is admin
+                    if is_admin:
+                        header_row.append(
+                            ft.ElevatedButton(
+                                "Add Event",
+                                icon=ft.Icons.ADD,
+                                on_click=lambda e: self.page.go("/create_event"),
+                                style=ft.ButtonStyle(
+                                    bgcolor=PRIMARY_COLOR,
+                                    color=ft.Colors.WHITE,
+                                    padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                                    shape=ft.RoundedRectangleBorder(radius=5)
+                                )
+                            )
+                        )
+                    
                     event_list_column.controls = [
                         ft.Container(
                             content=ft.Row(
-                                [
-                                    ft.Column(
-                                        [
-                                            ft.Text(
-                                                "Events",
-                                                size=18,
-                                                weight=ft.FontWeight.BOLD,
-                                                color=ft.Colors.BLACK87
-                                            ),
-                                            ft.Text(
-                                                "0 events",
-                                                size=13,
-                                                color=ft.Colors.GREY_600
-                                            )
-                                        ],
-                                        spacing=4
-                                    ),
-                                    ft.Container(expand=True),  # Spacer
-                                    ft.ElevatedButton(
-                                        "Add Event",
-                                        icon=ft.Icons.ADD,
-                                        on_click=lambda e: self.page.go("/create_event"),
-                                        style=ft.ButtonStyle(
-                                            bgcolor=PRIMARY_COLOR,
-                                            color=ft.Colors.WHITE,
-                                            padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                                            shape=ft.RoundedRectangleBorder(radius=5)
-                                        )
-                                    )
-                                ],
+                                header_row,
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 spacing=12
@@ -195,7 +224,7 @@ class HomeView(BaseView):
                                 [
                                     ft.Icon(ft.Icons.EVENT_BUSY, size=80, color=ft.Colors.GREY_300),
                                     ft.Text("No events yet", size=22, color=ft.Colors.GREY_600, weight=ft.FontWeight.BOLD),
-                                    ft.Text("Create your first event to get started", size=14, color=ft.Colors.GREY_500)
+                                    ft.Text("Create your first event to get started" if is_admin else "No events available", size=14, color=ft.Colors.GREY_500)
                                 ],
                                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                 spacing=16
