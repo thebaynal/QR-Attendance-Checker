@@ -321,36 +321,9 @@ class Database:
         if existing:
             return False
         
-        try:
-            query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (username, password, full_name, role, datetime.now().isoformat()))
-                conn.commit()
-                # If we get here without exception, insert was successful
-                return True
-        except sqlite3.Error as e:
-            print(f"Error creating user: {e}")
-            return False
-    
-    def delete_user(self, username: str) -> bool:
-        """Delete a user account."""
-        try:
-            query = "DELETE FROM users WHERE username = ?"
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (username,))
-                conn.commit()
-                # Check if any rows were deleted
-                if cursor.rowcount > 0:
-                    print(f"User '{username}' deleted successfully")
-                    return True
-                else:
-                    print(f"User '{username}' not found")
-                    return False
-        except sqlite3.Error as e:
-            print(f"Error deleting user: {e}")
-            return False
+        query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
+        result = self._execute(query, (username, password, full_name, role, datetime.now().isoformat()))
+        return result is not None
     
     # database/db_manager.py (Add these methods)
 
