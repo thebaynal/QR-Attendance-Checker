@@ -116,7 +116,28 @@ class HomeView(BaseView):
             return ft.View(
                 "/home",
                 [
-                    self.create_app_bar("MaScan"),
+                    ft.AppBar(
+                        title=ft.Row(
+                            [
+                                ft.Image(
+                                    src="C:\\Users\\Asus\\Documents\\QR-Attendance-Checker\\final-project\\src\\assets\\MS_Logo_White.png",
+                                    width=32,
+                                    height=32
+                                ),
+                                ft.Text("MaScan", size=20, weight=ft.FontWeight.BOLD)
+                            ],
+                            spacing=10,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER
+                        ),
+                        actions=[
+                            ft.IconButton(
+                                icon=ft.Icons.MENU,
+                                on_click=lambda e: self.app.open_end_drawer()
+                            )
+                        ] if self.app.current_user else [],
+                        bgcolor=PRIMARY_COLOR,
+                        color=ft.Colors.WHITE,
+                    ),
                     event_list,
                     ft.FloatingActionButton(
                         icon=ft.Icons.ADD,
