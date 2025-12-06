@@ -1,0 +1,29 @@
+[33m7a74c6f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: commit (merge): Merged morning/afternoon attendance and activity log features with UI improvements
+[33mc689986[m HEAD@{1}: commit: Saved current UI improvements
+[33m4310c8f[m HEAD@{2}: commit: Updated event view PDF exports to use 12-hour AM/PM time format
+[33m9f9f27d[m HEAD@{3}: commit: Updated event view PDF exports to use 12-hour AM/PM time format
+[33m25e31ea[m HEAD@{4}: commit: Updated scan view to use 12-hour AM/PM time format for attendance
+[33m3d28f66[m HEAD@{5}: commit: Updated database timestamps to 12-hour AM/PM format
+[33m0d2827f[m HEAD@{6}: commit: Enhanced navigation drawer with modern UI and user profile section
+[33m1af72f5[m[33m ([m[1;31morigin/fred-branch[m[33m, [m[1;32mfred-branch[m[33m)[m HEAD@{7}: reset: moving to origin/fred-branch
+[33m24e9fbd[m HEAD@{8}: checkout: moving from fred-branch to main
+[33m1af72f5[m[33m ([m[1;31morigin/fred-branch[m[33m, [m[1;32mfred-branch[m[33m)[m HEAD@{9}: commit: Enhanced event view with mobile optimization and improved error handling
+[33m5720785[m HEAD@{10}: commit: Updated create event view UI
+[33m428ef39[m HEAD@{11}: commit: Enhanced scan view with fixes
+[33mae88bbb[m HEAD@{12}: commit: Enhanced login view with premium styling
+[33mb2d5f6f[m HEAD@{13}: commit: Updated base view with premium styling utilities
+[33m7e25813[m HEAD@{14}: commit: Enhanced home view with premium styling and sorting/filtering
+[33m91407e2[m HEAD@{15}: commit: Enhanced home view with sorting, filtering, and improved design
+[33m88f2a1e[m HEAD@{16}: commit: Added upcoming event detection with scan prevention
+[33m9db5040[m HEAD@{17}: commit: Fixed delete event to refresh view immediately
+[33m45381ca[m HEAD@{18}: commit: Added functional date picker to create event view
+[33maa77f04[m HEAD@{19}: commit: UI/UX Improvements: Enhanced home view, login error handling, date picker, and event view
+[33mcbf03e8[m HEAD@{20}: commit: Updated view files: improved UI and functionality
+[33m3707a9d[m HEAD@{21}: checkout: moving from main to fred-branch
+[33m24e9fbd[m HEAD@{22}: pull origin main --allow-unrelated-histories: Fast-forward
+[33m6a53879[m HEAD@{23}: checkout: moving from fred-branch to main
+[33m3707a9d[m HEAD@{24}: commit: ui changes
+[33m275d4df[m HEAD@{25}: commit: changed loginview.py so now the bg is soft gradient white and blue nicer card shadow n more padding, logo is centered, inputs bigger inputs n rounded , login button bigger n hover effect, error messages animated, default creds box collapsible, spacing n fonts more consistent, ready for future stuff like signup or social login, rushed details
+[33m6a53879[m HEAD@{26}: checkout: moving from fred-branch to fred-branch
+[33m6a53879[m HEAD@{27}: checkout: moving from main to fred-branch
+[33m6a53879[m HEAD@{28}: clone: from https://github.com/thebaynal/QR-Attendance-Checker.git

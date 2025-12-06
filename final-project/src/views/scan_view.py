@@ -1,5 +1,5 @@
 # views/scan_view.py
-"""Premium QR code scanning view with fixed alignment and recording."""
+"""Premium QR code scanning view with time slot selection."""
 
 import flet as ft
 from datetime import datetime
@@ -11,7 +11,7 @@ from utils.qr_scanner import QRCameraScanner
 
 
 class ScanView(BaseView):
-    """Premium QR scanning screen with camera support."""
+    """Premium QR scanning screen with camera support and time slots."""
     
     def build(self, event_id: str):
         """Build and return the premium scan view."""
@@ -20,25 +20,211 @@ class ScanView(BaseView):
             self.page.go("/home")
             return ft.View("/", [ft.Container()])
         
+        # Selected time slot state
+        selected_time_slot = ["morning"]  # Default to morning
+        
         # Scan log list
         scan_log = ft.ListView(spacing=10, padding=14, expand=True)
         
-        # Load recent scans
-        attendance = self.db.get_attendance_by_event(event_id)
-        for user_id, record in list(attendance.items())[:10]:
-            scan_log.controls.append(
-                self.create_list_tile_card(
-                    leading_icon=ft.Icons.CHECK_CIRCLE,
-                    leading_color=ft.Colors.GREEN_600,
-                    title=record['name'],
-                    subtitle=record['time'],
-                )
-            )
+        # Load recent scans function with time slot support
+        def load_recent_scans(time_slot=None):
+            """Load recent scans for the selected time slot."""
+            scan_log.controls.clear()
+            
+            if time_slot:
+                # Load scans for specific time slot
+                query = """
+                SELECT user_id, user_name, timestamp, time_slot 
+                FROM attendance 
+                WHERE event_id = ? AND time_slot = ?
+                ORDER BY timestamp DESC 
+                LIMIT 10
+                """
+                results = self.db._execute(query, (event_id, time_slot), fetch_all=True)
+            else:
+                # Load all recent scans
+                attendance = self.db.get_attendance_by_event(event_id)
+                results = [(key.split('_')[0], rec['name'], rec['time'], rec.get('time_slot', 'N/A')) 
+                        for key, rec in list(attendance.items())[:10]]
+            
+            if results:
+                for record in results:
+                    user_id, user_name, timestamp, time_slot_val = record
+                    
+                    # Icon and color based on time slot
+                    if time_slot_val == 'morning':
+                        icon = ft.Icons.WB_SUNNY
+                        icon_color = ft.Colors.ORANGE_600
+                    elif time_slot_val == 'afternoon':
+                        icon = ft.Icons.NIGHTS_STAY
+                        icon_color = ft.Colors.BLUE_600
+                    else:
+                        icon = ft.Icons.CHECK_CIRCLE
+                        icon_color = ft.Colors.GREEN_600
+                    
+                    scan_log.controls.append(
+                        self.create_list_tile_card(
+                            leading_icon=icon,
+                            leading_color=icon_color,
+                            title=user_name,
+                            subtitle=timestamp,
+                        )
+                    )
+            
+            # Only update if scan_log is already added to page
+            try:
+                if hasattr(scan_log, 'page') and scan_log.page:
+                    scan_log.update()
+            except:
+                pass
+
+        load_recent_scans(selected_time_slot[0])
+        
+        # Get attendance stats
+        stats = self.db.get_attendance_summary(event_id)
+        morning_count = ft.Text(
+            str(stats.get('morning', 0)),
+            size=28,
+            weight=ft.FontWeight.BOLD,
+            color=ft.Colors.ORANGE_700
+        )
+        afternoon_count = ft.Text(
+            str(stats.get('afternoon', 0)),
+            size=28,
+            weight=ft.FontWeight.BOLD,
+            color=ft.Colors.BLUE_700
+        )
+        
+        # Premium stats cards
+        stats_card = ft.Row(
+            [
+                self.create_modern_card(
+                    content=ft.Column(
+                        [
+                            ft.Icon(ft.Icons.WB_SUNNY, size=36, color=ft.Colors.ORANGE_400),
+                            ft.Text("Morning", size=13, weight=ft.FontWeight.W_600, color=ft.Colors.GREY_700),
+                            morning_count,
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=8
+                    ),
+                    padding=20,
+                ),
+                self.create_modern_card(
+                    content=ft.Column(
+                        [
+                            ft.Icon(ft.Icons.NIGHTS_STAY, size=36, color=ft.Colors.BLUE_400),
+                            ft.Text("Afternoon", size=13, weight=ft.FontWeight.W_600, color=ft.Colors.GREY_700),
+                            afternoon_count,
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=8
+                    ),
+                    padding=20,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=12,
+        )
+        
+        # Time slot indicator
+        time_slot_indicator = ft.Container(
+            content=ft.Text(
+                "☀️ MORNING SESSION",
+                size=15,
+                weight=ft.FontWeight.BOLD,
+                color=ft.Colors.ORANGE_700,
+            ),
+            padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            border_radius=24,
+            bgcolor=ft.Colors.ORANGE_50,
+            border=ft.border.all(2, ft.Colors.ORANGE_200),
+        )
+        
+        # Time slot selection buttons
+        morning_btn = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.WB_SUNNY, size=24, color=ft.Colors.WHITE),
+                    ft.Text("Morning", size=15, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+            ),
+            bgcolor=ft.Colors.ORANGE_400,
+            border_radius=12,
+            padding=14,
+            expand=True,
+        )
+        
+        afternoon_btn = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.NIGHTS_STAY, size=24, color=ft.Colors.GREY_600),
+                    ft.Text("Afternoon", size=15, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_600),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+            ),
+            bgcolor=ft.Colors.GREY_200,
+            border_radius=12,
+            padding=14,
+            expand=True,
+        )
+        
+        def select_morning(e):
+            """Select morning time slot."""
+            selected_time_slot[0] = "morning"
+            morning_btn.bgcolor = ft.Colors.ORANGE_400
+            morning_btn.content.controls[0].color = ft.Colors.WHITE
+            morning_btn.content.controls[1].color = ft.Colors.WHITE
+            afternoon_btn.bgcolor = ft.Colors.GREY_200
+            afternoon_btn.content.controls[0].color = ft.Colors.GREY_600
+            afternoon_btn.content.controls[1].color = ft.Colors.GREY_600
+            time_slot_indicator.content.value = "☀️ MORNING SESSION"
+            time_slot_indicator.content.color = ft.Colors.ORANGE_700
+            time_slot_indicator.bgcolor = ft.Colors.ORANGE_50
+            time_slot_indicator.border = ft.border.all(2, ft.Colors.ORANGE_200)
+            camera_container.border = ft.border.all(3, ft.Colors.ORANGE_400)
+            
+            morning_btn.update()
+            afternoon_btn.update()
+            time_slot_indicator.update()
+            camera_container.update()
+            
+            load_recent_scans("morning")
+            self.show_snackbar("☀️ Switched to Morning attendance", ft.Colors.ORANGE)
+        
+        def select_afternoon(e):
+            """Select afternoon time slot."""
+            selected_time_slot[0] = "afternoon"
+            morning_btn.bgcolor = ft.Colors.GREY_200
+            morning_btn.content.controls[0].color = ft.Colors.GREY_600
+            morning_btn.content.controls[1].color = ft.Colors.GREY_600
+            afternoon_btn.bgcolor = ft.Colors.BLUE_400
+            afternoon_btn.content.controls[0].color = ft.Colors.WHITE
+            afternoon_btn.content.controls[1].color = ft.Colors.WHITE
+            time_slot_indicator.content.value = "🌙 AFTERNOON SESSION"
+            time_slot_indicator.content.color = ft.Colors.BLUE_700
+            time_slot_indicator.bgcolor = ft.Colors.BLUE_50
+            time_slot_indicator.border = ft.border.all(2, ft.Colors.BLUE_200)
+            camera_container.border = ft.border.all(3, ft.Colors.BLUE_400)
+            
+            morning_btn.update()
+            afternoon_btn.update()
+            time_slot_indicator.update()
+            camera_container.update()
+            
+            load_recent_scans("afternoon")
+            self.show_snackbar("🌙 Switched to Afternoon attendance", ft.Colors.BLUE)
+        
+        morning_btn.on_click = select_morning
+        afternoon_btn.on_click = select_afternoon
         
         # Premium input field
         qr_input = ft.TextField(
             label="Enter ID manually",
-            hint_text="",
+            hint_text="e.g., 2021-00001",
             prefix_icon=ft.Icons.QR_CODE_2,
             height=56,
             border_radius=14,
@@ -124,7 +310,7 @@ class ScanView(BaseView):
             padding=18,
             border_radius=18,
             bgcolor=ft.Colors.WHITE,
-            border=ft.border.all(2, ft.Colors.GREY_200),
+            border=ft.border.all(3, ft.Colors.ORANGE_400),
             shadow=ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=20,
@@ -151,11 +337,11 @@ class ScanView(BaseView):
                 print(f"Error updating frame: {e}")
         
         def process_scan(user_id: str):
-            """Process a scanned or entered ID."""
-            user_id = user_id.strip()
-            
-            if not user_id:
+            """Process QR scan with time slot support."""
+            if not user_id or not user_id.strip():
                 return
+            
+            user_id = user_id.strip()
             
             # Parse QR data
             if "|" in user_id:
@@ -166,35 +352,62 @@ class ScanView(BaseView):
                 school_id = user_id
                 user_name = user_id
             
-            existing = self.db.is_user_checked_in(event_id, school_id)
+            # Get current time slot
+            time_slot = selected_time_slot[0]
             
-            if existing:
-                self.show_snackbar(f"⚠️ {user_name} already checked in at {existing}", ft.Colors.ORANGE_600)
+            # Check if already checked in for this time slot
+            already_checked = self.db.check_timeslot_attendance(event_id, school_id, time_slot)
+            
+            if already_checked:
+                slot_emoji = "☀️" if time_slot == "morning" else "🌙"
+                self.show_snackbar(f"⚠️ {user_name} already checked in for {slot_emoji} {time_slot.title()}!", ft.Colors.ORANGE_600)
                 return
             
+            # Record attendance with time slot
             timestamp = datetime.now().strftime("%I:%M:%S %p")
-            self.db.record_attendance(event_id, school_id, user_name, timestamp)
+            success = self.db.record_timeslot_attendance(event_id, school_id, user_name, timestamp, time_slot)
             
-            # Add to log with premium styling
-            new_card = self.create_list_tile_card(
-                leading_icon=ft.Icons.CHECK_CIRCLE,
-                leading_color=ft.Colors.GREEN_600,
-                title=user_name,
-                subtitle=timestamp,
-            )
-            
-            scan_log.controls.insert(0, new_card)
-            
-            # Limit to 20 items
-            if len(scan_log.controls) > 20:
-                scan_log.controls = scan_log.controls[:20]
-            
-            try:
-                scan_log.update()
-            except Exception as e:
-                print(f"Error updating scan log: {e}")
-            
-            self.show_snackbar(f"✓ {user_name} checked in!", ft.Colors.GREEN_600)
+            if success:
+                # Determine icon based on time slot
+                if time_slot == 'morning':
+                    icon = ft.Icons.WB_SUNNY
+                    icon_color = ft.Colors.ORANGE_600
+                    slot_emoji = "☀️"
+                else:
+                    icon = ft.Icons.NIGHTS_STAY
+                    icon_color = ft.Colors.BLUE_600
+                    slot_emoji = "🌙"
+                
+                # Add to log with premium styling
+                new_card = self.create_list_tile_card(
+                    leading_icon=icon,
+                    leading_color=icon_color,
+                    title=user_name,
+                    subtitle=f"{timestamp} • {time_slot.title()}",
+                )
+                
+                scan_log.controls.insert(0, new_card)
+                
+                # Limit to 20 items
+                if len(scan_log.controls) > 20:
+                    scan_log.controls = scan_log.controls[:20]
+                
+                # Update count
+                if time_slot == 'morning':
+                    morning_count.value = str(int(morning_count.value) + 1)
+                    morning_count.update()
+                else:
+                    afternoon_count.value = str(int(afternoon_count.value) + 1)
+                    afternoon_count.update()
+                
+                try:
+                    scan_log.update()
+                except Exception as e:
+                    print(f"Error updating scan log: {e}")
+                
+                self.show_snackbar(f"✓ {user_name} checked in for {slot_emoji} {time_slot.title()}!", ft.Colors.GREEN_600)
+            else:
+                self.show_snackbar("Failed to record attendance", ft.Colors.RED)
         
         def on_qr_detected(qr_data: str):
             """Callback when QR code is detected."""
@@ -223,7 +436,12 @@ class ScanView(BaseView):
                 camera_status.content.controls[1].color = ft.Colors.ORANGE_700
                 camera_status.bgcolor = ft.Colors.ORANGE_50
                 
-                camera_container.border = ft.border.all(3, ft.Colors.GREEN_400)
+                # Update border based on selected time slot
+                if selected_time_slot[0] == "morning":
+                    camera_container.border = ft.border.all(3, ft.Colors.ORANGE_400)
+                else:
+                    camera_container.border = ft.border.all(3, ft.Colors.BLUE_400)
+                    
                 camera_container.shadow = ft.BoxShadow(
                     blur_radius=24,
                     color=ft.Colors.with_opacity(0.15, ft.Colors.GREEN_400),
@@ -325,6 +543,44 @@ class ScanView(BaseView):
         # Build premium layout with proper alignment
         content = ft.Column(
             [
+                # Time slot selector section
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Text(
+                                "Select Time Slot",
+                                size=16,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.GREY_800
+                            ),
+                            ft.Row(
+                                [morning_btn, afternoon_btn],
+                                spacing=12
+                            ),
+                        ],
+                        spacing=12
+                    ),
+                    padding=16,
+                    border_radius=16,
+                    bgcolor=ft.Colors.WHITE,
+                    border=ft.border.all(1, ft.Colors.GREY_200),
+                ),
+                
+                ft.Container(height=12),
+                
+                # Current session indicator
+                ft.Container(
+                    content=time_slot_indicator,
+                    alignment=ft.alignment.center,
+                ),
+                
+                ft.Container(height=16),
+                
+                # Stats cards
+                stats_card,
+                
+                ft.Container(height=20),
+                
                 # Camera section - centered
                 ft.Container(
                     content=camera_container,

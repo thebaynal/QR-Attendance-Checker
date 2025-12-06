@@ -21,7 +21,7 @@ class UserManagementView(BaseView):
             # Form fields
             username_field = self.create_modern_text_field(
                 label="Username",
-                hint_text="e.g., john_doe",
+                hint_text="Enter Username",
                 prefix_icon=ft.Icons.PERSON_OUTLINE,
                 width=360,
             )
