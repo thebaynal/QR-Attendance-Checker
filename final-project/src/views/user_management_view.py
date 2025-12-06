@@ -79,6 +79,50 @@ class UserManagementView(BaseView):
                             role_badge_color = ft.Colors.GREEN if role == 'admin' else ft.Colors.BLUE
                             role_label = "Admin" if role == 'admin' else "Scanner"
                             
+                            def delete_user_handler(username_to_delete, full_name_to_delete):
+                                """Handle user deletion with confirmation."""
+                                def confirm_delete(e):
+                                    try:
+                                        print(f"DEBUG: Deleting user {username_to_delete}")
+                                        success = self.db.delete_user(username_to_delete)
+                                        
+                                        if success:
+                                            status_text.value = f"User '{full_name_to_delete}' deleted successfully!"
+                                            status_text.color = ft.Colors.GREEN
+                                            load_users()
+                                        else:
+                                            status_text.value = f"Failed to delete user '{full_name_to_delete}'"
+                                            status_text.color = ft.Colors.RED
+                                        
+                                        status_text.update()
+                                        self.page.close(dialog)
+                                    except Exception as ex:
+                                        print(f"ERROR deleting user: {ex}")
+                                        status_text.value = f"Error: {str(ex)}"
+                                        status_text.color = ft.Colors.RED
+                                        status_text.update()
+                                        self.page.close(dialog)
+                                
+                                def cancel_delete(e):
+                                    self.page.close(dialog)
+                                
+                                dialog = ft.AlertDialog(
+                                    title=ft.Text("Delete User"),
+                                    content=ft.Text(
+                                        f"Are you sure you want to delete '{full_name_to_delete}'? This action cannot be undone."
+                                    ),
+                                    actions=[
+                                        ft.TextButton("Cancel", on_click=cancel_delete),
+                                        ft.TextButton(
+                                            "Delete",
+                                            on_click=confirm_delete,
+                                            style=ft.ButtonStyle(color=ft.Colors.RED)
+                                        ),
+                                    ],
+                                    actions_alignment=ft.MainAxisAlignment.END,
+                                )
+                                self.page.open(dialog)
+                            
                             user_tile = ft.Card(
                                 content=ft.Container(
                                     content=ft.Row(
@@ -108,6 +152,12 @@ class UserManagementView(BaseView):
                                                 bgcolor=role_badge_color,
                                                 padding=8,
                                                 border_radius=5
+                                            ),
+                                            ft.IconButton(
+                                                icon=ft.Icons.DELETE,
+                                                icon_color=ft.Colors.RED,
+                                                tooltip="Delete user",
+                                                on_click=lambda e, u=username, fn=full_name: delete_user_handler(u, fn)
                                             )
                                         ],
                                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
