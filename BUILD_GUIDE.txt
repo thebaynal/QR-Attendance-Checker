@@ -1,122 +1,104 @@
 ================================================================================
-BUILDING APK LOCALLY ON WINDOWS WITH WSL
+BUILDING APK WITH FLET (Easiest Method)
 ================================================================================
 
-Since your network blocks external build services, we'll build locally using
-Windows Subsystem for Linux (WSL2) + buildozer.
+Flet has built-in APK building! This is the simplest approach.
 
 ================================================================================
-STEP 1: Install WSL2 (One-time setup)
+STEP 1: Install Flet CLI
 ================================================================================
 
-Open PowerShell as Administrator and run:
+Run in PowerShell:
 
-wsl --install
+pip install flet-cli
 
-This installs WSL2 with Ubuntu. You may need to restart your computer.
+Verify installation:
 
-After installation, verify it works:
-wsl --list --verbose
-
-================================================================================
-STEP 2: Set up Ubuntu on WSL
-================================================================================
-
-1. Open Ubuntu terminal (search "Ubuntu" in Windows Start menu)
-
-2. Update package lists:
-   sudo apt update
-   sudo apt upgrade -y
-
-3. Install required dependencies:
-   sudo apt install -y \
-     python3 \
-     python3-pip \
-     openjdk-11-jdk \
-     build-essential \
-     git \
-     libffi-dev \
-     libssl-dev
-
-4. Install buildozer and Cython:
-   pip3 install buildozer cython
-
-5. Verify installation:
-   buildozer --version
+flet --version
 
 ================================================================================
-STEP 3: Set up Android SDK/NDK
+STEP 2: Build the APK
 ================================================================================
 
-The first time you run buildozer, it will automatically download and set up
-the Android SDK and NDK. This takes time (~5-10 minutes) but only happens once.
+Navigate to your project and run:
 
-================================================================================
-STEP 4: Build the APK
-================================================================================
+cd c:\Users\thebaynal\Desktop\QR-Attendance-Checker
 
-In Ubuntu terminal, navigate to your project:
-
-cd /mnt/c/Users/thebaynal/Desktop/QR-Attendance-Checker
-
-Then run:
-
-buildozer android debug
+flet build apk
 
 This will:
-1. Download Android SDK/NDK (~2GB)
-2. Compile your Python code
+1. Automatically download necessary tools
+2. Compile your Python app
 3. Create APK file
-4. Save to: bin/qrattendance-*.apk
+4. Save to: build/app/release/your_app.apk
 
-Total time: 15-30 minutes (first build is slower)
+Time: 10-20 minutes (first build is slower)
 
 ================================================================================
-STEP 5: Find and Install the APK
+STEP 3: Install on Phone
 ================================================================================
 
-After build completes, your APK is at:
+After build completes, find your APK at:
 
-C:\Users\thebaynal\Desktop\QR-Attendance-Checker\bin\qrattendance-*.apk
+C:\Users\thebaynal\Desktop\QR-Attendance-Checker\build\app\release\
 
-Transfer to your phone and install. You can:
-1. Email it to yourself
+Transfer to phone and install. You can:
+1. Email to yourself
 2. Use Google Drive
-3. Use a file transfer app
-4. Use adb (Android Debug Bridge)
+3. Use USB cable and adb
+4. Use file transfer app
 
 ================================================================================
 TROUBLESHOOTING
 ================================================================================
 
-Issue: "buildozer: command not found"
-Fix: Make sure you installed it with pip3: pip3 install buildozer
+Issue: "flet: command not found"
+Fix: pip install flet-cli
 
-Issue: "Java not found"
-Fix: Install Java: sudo apt install -y openjdk-11-jdk
+Issue: Build fails with Java errors
+Fix: Install Java: https://www.oracle.com/java/technologies/downloads/
 
-Issue: "Out of disk space"
-Fix: The build needs ~3GB free space
+Issue: "ANDROID_SDK_ROOT not found"
+Fix: Set environment variable:
+  - Right-click This PC > Properties
+  - Advanced system settings
+  - Environment Variables
+  - New: ANDROID_SDK_ROOT = C:\Users\YourUsername\android-sdk
 
-Issue: Build takes very long
-Fix: First build is slow (downloads SDK). Subsequent builds are faster.
-
-Issue: Permission denied errors
-Fix: Run: sudo chown -R $USER ~/.buildozer
+Issue: Out of disk space
+Fix: Build needs ~3GB free space
 
 ================================================================================
-QUICK START (After initial setup)
+QUICK REFERENCE
 ================================================================================
 
-Every time you want to rebuild:
+# Build APK
+flet build apk
 
-1. Open Ubuntu terminal
-2. Navigate to project:
+# Build APK with release config
+flet build apk --release
+
+# Build for specific target
+flet build apk --target android
+
+# View build logs
+flet build apk --verbose
+
+================================================================================
+ALTERNATIVE: Use Buildozer with WSL (if Flet build fails)
+================================================================================
+
+If Flet build doesn't work, fall back to WSL + buildozer setup:
+
+1. Install WSL2: wsl --install
+2. Open Ubuntu terminal
+3. Install dependencies:
+   sudo apt update
+   sudo apt install -y python3 python3-pip openjdk-11-jdk build-essential
+4. Install buildozer:
+   pip3 install buildozer cython
+5. Build:
    cd /mnt/c/Users/thebaynal/Desktop/QR-Attendance-Checker
-
-3. Build:
    buildozer android debug
-
-4. Find APK in bin/ folder
 
 ================================================================================
