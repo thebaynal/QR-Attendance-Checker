@@ -80,6 +80,8 @@ class UserManagementView(BaseView):
                             role_label = "Admin" if role == 'admin' else "Scanner"
                             
                             # Create delete handler with proper closure
+                           # views/user_management_view.py (Replace the make_delete_handler function)
+
                             def make_delete_handler(user_username, user_fullname):
                                 def delete_user_click(e):
                                     print(f"DEBUG: Delete clicked for {user_username}")
@@ -87,32 +89,93 @@ class UserManagementView(BaseView):
                                     def handle_confirm(dlg_event):
                                         try:
                                             print(f"DEBUG: Confirming deletion of {user_username}")
+                                            
+                                            # Close dialog first
+                                            self.page.close(delete_dlg)
+                                            
+                                            # Delete from database
                                             self.db._execute("DELETE FROM users WHERE username = ?", (user_username,))
                                             print(f"DEBUG: User deleted from database")
-                                            self.show_snackbar(f"✓ User '{user_fullname}' deleted!", ft.Colors.GREEN)
+                                            
+                                            # Show success message
+                                            self.show_snackbar(f"✅ User '{user_fullname}' deleted!", ft.Colors.GREEN)
+                                            
+                                            # Reload users list
                                             load_users()
+                                            
                                         except Exception as ex:
                                             print(f"ERROR: {ex}")
                                             import traceback
                                             traceback.print_exc()
+                                            self.show_snackbar(f"❌ Error deleting user: {str(ex)}", ft.Colors.RED)
                                     
                                     def handle_cancel(dlg_event):
                                         print(f"DEBUG: Deletion cancelled")
-                                        pass
+                                        self.page.close(delete_dlg)
                                     
-                                    # Create dialog
-                                    dlg = ft.AlertDialog(
-                                        title=ft.Text("Confirm Deletion"),
-                                        content=ft.Text(f"Delete user '{user_fullname}'?"),
+                                    # Create dialog with proper styling
+                                    delete_dlg = ft.AlertDialog(
+                                        modal=True,
+                                        title=ft.Row(
+                                            [
+                                                ft.Icon(ft.Icons.WARNING, color=ft.Colors.RED, size=30),
+                                                ft.Text("Confirm Deletion", weight=ft.FontWeight.BOLD, size=18),
+                                            ],
+                                            spacing=10
+                                        ),
+                                        content=ft.Container(
+                                            content=ft.Column(
+                                                [
+                                                    ft.Text(
+                                                        f"Are you sure you want to delete user:",
+                                                        size=14
+                                                    ),
+                                                    ft.Text(
+                                                        f"'{user_fullname}' (@{user_username})",
+                                                        size=14,
+                                                        weight=ft.FontWeight.BOLD,
+                                                        color=ft.Colors.RED
+                                                    ),
+                                                    ft.Container(height=10),
+                                                    ft.Row(
+                                                        [
+                                                            ft.Icon(ft.Icons.INFO_OUTLINE, color=ft.Colors.ORANGE, size=20),
+                                                            ft.Text(
+                                                                "This action cannot be undone!",
+                                                                size=12,
+                                                                color=ft.Colors.GREY_700,
+                                                                italic=True
+                                                            ),
+                                                        ],
+                                                        spacing=5
+                                                    )
+                                                ],
+                                                tight=True
+                                            ),
+                                            width=400
+                                        ),
                                         actions=[
-                                            ft.TextButton("Cancel", on_click=handle_cancel),
-                                            ft.TextButton("Yes, Delete", on_click=handle_confirm),
+                                            ft.TextButton(
+                                                "Cancel", 
+                                                on_click=handle_cancel,
+                                                style=ft.ButtonStyle(color=ft.Colors.GREY_700)
+                                            ),
+                                            ft.ElevatedButton(
+                                                "Yes, Delete",
+                                                icon=ft.Icons.DELETE_FOREVER,
+                                                on_click=handle_confirm,
+                                                style=ft.ButtonStyle(
+                                                    bgcolor=ft.Colors.RED_700,
+                                                    color=ft.Colors.WHITE
+                                                )
+                                            ),
                                         ],
+                                        actions_alignment=ft.MainAxisAlignment.END,
                                     )
                                     
-                                    self.page.add(dlg)
-                                    dlg.open = True
-                                    self.page.update()
+                                    # Open dialog using page.open() method
+                                    self.page.open(delete_dlg)
+                                    print("DEBUG: Dialog opened")
                                 
                                 return delete_user_click
                             

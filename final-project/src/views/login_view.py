@@ -98,7 +98,7 @@ class LoginView(BaseView):
                                         ft.Column(
                                             [
                                                 ft.Image(
-                                                    src="C:\\Users\\Asus\\Documents\\QR-Attendance-Checker\\final-project\\src\\assets\\MS_Logo_Blue.png",
+                                                    src="final-project\\src\\assets\\MS_Logo_Blue.png",
                                                     width=100,
                                                     height=100,
                                                     fit=ft.ImageFit.CONTAIN,
