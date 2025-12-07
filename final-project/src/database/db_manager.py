@@ -1,4 +1,3 @@
-# database/db_manager.py
 """Database manager for handling all SQLite operations."""
 
 import sqlite3
@@ -128,11 +127,11 @@ class Database:
                     else:
                         print("Admin user already has 'admin' role")
                 else:
-                    # Create admin user
+                    # Create admin user with 12-hour format timestamp
                     print("Creating default admin user")
                     cursor.execute(
                         "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
-                        ('admin', 'admin123', 'Administrator', 'admin', datetime.now().isoformat())
+                        ('admin', 'admin123', 'Administrator', 'admin', datetime.now().strftime("%Y-%m-%d %I:%M:%S %p"))
                     )
                     conn.commit()
                     print("Default admin user created")
@@ -248,6 +247,7 @@ class Database:
         if existing:
             return False
         
+        # Use 12-hour format for created_at timestamp
         query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
-        result = self._execute(query, (username, password, full_name, role, datetime.now().isoformat()))
+        result = self._execute(query, (username, password, full_name, role, datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")))
         return result is not None
