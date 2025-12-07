@@ -1,0 +1,104 @@
+================================================================================
+BUILDING APK WITH FLET (Easiest Method)
+================================================================================
+
+Flet has built-in APK building! This is the simplest approach.
+
+================================================================================
+STEP 1: Install Flet CLI
+================================================================================
+
+Run in PowerShell:
+
+pip install flet-cli
+
+Verify installation:
+
+flet --version
+
+================================================================================
+STEP 2: Build the APK
+================================================================================
+
+Navigate to your project and run:
+
+cd c:\Users\thebaynal\Desktop\QR-Attendance-Checker
+
+flet build apk
+
+This will:
+1. Automatically download necessary tools
+2. Compile your Python app
+3. Create APK file
+4. Save to: build/app/release/your_app.apk
+
+Time: 10-20 minutes (first build is slower)
+
+================================================================================
+STEP 3: Install on Phone
+================================================================================
+
+After build completes, find your APK at:
+
+C:\Users\thebaynal\Desktop\QR-Attendance-Checker\build\app\release\
+
+Transfer to phone and install. You can:
+1. Email to yourself
+2. Use Google Drive
+3. Use USB cable and adb
+4. Use file transfer app
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Issue: "flet: command not found"
+Fix: pip install flet-cli
+
+Issue: Build fails with Java errors
+Fix: Install Java: https://www.oracle.com/java/technologies/downloads/
+
+Issue: "ANDROID_SDK_ROOT not found"
+Fix: Set environment variable:
+  - Right-click This PC > Properties
+  - Advanced system settings
+  - Environment Variables
+  - New: ANDROID_SDK_ROOT = C:\Users\YourUsername\android-sdk
+
+Issue: Out of disk space
+Fix: Build needs ~3GB free space
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+# Build APK
+flet build apk
+
+# Build APK with release config
+flet build apk --release
+
+# Build for specific target
+flet build apk --target android
+
+# View build logs
+flet build apk --verbose
+
+================================================================================
+ALTERNATIVE: Use Buildozer with WSL (if Flet build fails)
+================================================================================
+
+If Flet build doesn't work, fall back to WSL + buildozer setup:
+
+1. Install WSL2: wsl --install
+2. Open Ubuntu terminal
+3. Install dependencies:
+   sudo apt update
+   sudo apt install -y python3 python3-pip openjdk-11-jdk build-essential
+4. Install buildozer:
+   pip3 install buildozer cython
+5. Build:
+   cd /mnt/c/Users/thebaynal/Desktop/QR-Attendance-Checker
+   buildozer android debug
+
+================================================================================

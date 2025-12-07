@@ -142,7 +142,11 @@ class LoginView(BaseView):
                 # Record login in activity log
                 self.db.record_login(username_value)
                 
+<<<<<<< HEAD
                 self.show_snackbar(f"Welcome back, {display_name}! 🎉", ft.Colors.GREEN_600)
+=======
+                self.show_snackbar(f"Welcome, {display_name}!", ft.Colors.GREEN)
+>>>>>>> upstream/main
                 self.page.go("/home")
             else:
                 error_text.value = "Invalid username or password"
@@ -329,7 +333,120 @@ class LoginView(BaseView):
                         rotation=0.785,
                     ),
                     content=ft.Column(
+<<<<<<< HEAD
                         [login_card],
+=======
+                        [
+                            ft.Container(
+                                width=420,
+                                padding=ft.padding.all(24),
+                                border_radius=10,
+                                border=ft.border.all(1, ft.Colors.BLUE_200),
+                                bgcolor=ft.Colors.WHITE,
+                                content=ft.Column(
+                                    [
+                                        ft.Container(height=14),
+                                        ft.Column(
+                                            [
+                                                ft.Image(
+                                                    src="final-project\\src\\assets\\MS_Logo_Blue.png",
+                                                    width=100,
+                                                    height=100,
+                                                    fit=ft.ImageFit.CONTAIN,
+                                                    error_content=ft.Icon(
+                                                        ft.Icons.QR_CODE_SCANNER,
+                                                        size=64,
+                                                        color=PRIMARY_COLOR
+                                                    )
+                                                ),
+                                                ft.Text(
+                                                    "MaScan",
+                                                    size=32,
+                                                    weight=ft.FontWeight.BOLD,
+                                                    color=BLUE_600
+                                                ),
+                                                ft.Text(
+                                                    "Attendance Management System",
+                                                    size=14,
+                                                    color=ft.Colors.GREY_700
+                                                ),
+                                            ],
+                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                            spacing=4
+                                        ),
+
+                                        ft.Container(height=18),
+
+                                        # Form fields
+                                        ft.Column(
+                                            [
+                                                username,
+                                                password,
+                                                error_text,
+                                                ft.Container(height=8),
+                                                ft.ElevatedButton(
+                                                    "LOGIN",
+                                                    width=340,
+                                                    height=48,
+                                                    on_click=authenticate,
+                                                    style=ft.ButtonStyle(
+                                                        bgcolor=BLUE_600,
+                                                        color=ft.Colors.WHITE,
+                                                    )
+                                                ),
+                                            ],
+                                            spacing=8,
+                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                                        ),
+
+                                        ft.Container(height=16),
+
+                                        # Default login info box
+                                        ft.Container(
+                                            content=ft.Column(
+                                                [
+                                                    ft.Text(
+                                                        "Default Login:",
+                                                        size=12,
+                                                        color=ft.Colors.GREY_600,
+                                                        weight=ft.FontWeight.BOLD
+                                                    ),
+                                                    ft.Text(
+                                                        f"Username: {DEFAULT_USERNAME}",
+                                                        size=12,
+                                                        color=ft.Colors.GREY_600
+                                                    ),
+                                                    ft.Text(
+                                                        f"Password: {DEFAULT_PASSWORD}",
+                                                        size=12,
+                                                        color=ft.Colors.GREY_600
+                                                    ),
+                                                ],
+                                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                                spacing=4
+                                            ),
+                                            padding=12,
+                                            border=ft.border.all(1, ft.Colors.GREY_200),
+                                            border_radius=8,
+                                            bgcolor=ft.Colors.GREY_50,
+                                            width=340
+                                        ),
+
+                                        ft.Container(height=12),
+                                        ft.Text(
+                                            APP_TAGLINE,
+                                            size=12,
+                                            color=ft.Colors.GREY_500,
+                                            italic=True,
+                                            text_align=ft.TextAlign.CENTER
+                                        )
+                                    ],
+                                    spacing=12,
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                                )
+                            )
+                        ],
+>>>>>>> upstream/main
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),

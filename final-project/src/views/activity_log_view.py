@@ -3,7 +3,11 @@
 
 import flet as ft
 from views.base_view import BaseView
+<<<<<<< HEAD
 from config.constants import PRIMARY_COLOR
+=======
+from config.constants import PRIMARY_COLOR, BLUE_50
+>>>>>>> upstream/main
 from datetime import datetime
 
 
@@ -53,8 +57,12 @@ class ActivityLogView(BaseView):
                         expand=True,
                         padding=0
                     )
+<<<<<<< HEAD
                 ],
                 bgcolor=ft.Colors.GREY_50
+=======
+                ]
+>>>>>>> upstream/main
             )
             
             return view
@@ -68,6 +76,7 @@ class ActivityLogView(BaseView):
                 controls=[
                     self.create_app_bar("Activity Log", show_back=True),
                     ft.Container(
+<<<<<<< HEAD
                         content=ft.Column(
                             [
                                 ft.Icon(ft.Icons.ERROR, size=60, color=ft.Colors.RED_400),
@@ -81,11 +90,19 @@ class ActivityLogView(BaseView):
                     )
                 ],
                 bgcolor=ft.Colors.GREY_50
+=======
+                        content=ft.Text(f"Error: {str(e)}", color=ft.Colors.RED),
+                        expand=True,
+                        alignment=ft.alignment.center
+                    )
+                ]
+>>>>>>> upstream/main
             )
     
     def _build_login_tab(self) -> ft.Control:
         """Build the login history tab."""
         try:
+<<<<<<< HEAD
             # Query login_history table
             query = """
                 SELECT username, login_time, logout_time 
@@ -103,6 +120,10 @@ class ActivityLogView(BaseView):
                         'login_time': row[1],
                         'logout_time': row[2]
                     })
+=======
+            # Get recent logins
+            logins = self.db.get_recent_logins(limit=50)
+>>>>>>> upstream/main
             
             # Create login list
             login_list = ft.ListView(spacing=8, padding=10, expand=True)
@@ -113,8 +134,12 @@ class ActivityLogView(BaseView):
                         content=ft.Column(
                             [
                                 ft.Icon(ft.Icons.INFO, size=60, color=ft.Colors.GREY_400),
+<<<<<<< HEAD
                                 ft.Text("No login history yet", size=16, color=ft.Colors.GREY_600, weight=ft.FontWeight.BOLD),
                                 ft.Text("Login records will appear here", size=12, color=ft.Colors.GREY_500)
+=======
+                                ft.Text("No login history", color=ft.Colors.GREY_600)
+>>>>>>> upstream/main
                             ],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             spacing=10
@@ -130,6 +155,7 @@ class ActivityLogView(BaseView):
             
             return ft.Container(
                 content=login_list,
+<<<<<<< HEAD
                 expand=True,
                 bgcolor=ft.Colors.GREY_50,
                 padding=10
@@ -148,6 +174,14 @@ class ActivityLogView(BaseView):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=10
                 ),
+=======
+                expand=True
+            )
+        except Exception as e:
+            print(f"Error building login tab: {e}")
+            return ft.Container(
+                content=ft.Text(f"Error: {str(e)}", color=ft.Colors.RED),
+>>>>>>> upstream/main
                 expand=True,
                 alignment=ft.alignment.center
             )
@@ -155,6 +189,7 @@ class ActivityLogView(BaseView):
     def _build_scan_tab(self) -> ft.Control:
         """Build the scan history tab."""
         try:
+<<<<<<< HEAD
             # Query scan_history table
             query = """
                 SELECT scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time 
@@ -174,6 +209,10 @@ class ActivityLogView(BaseView):
                         'event_id': row[3],
                         'scan_time': row[4]
                     })
+=======
+            # Get recent scans
+            scans = self.db.get_recent_scans(limit=50)
+>>>>>>> upstream/main
             
             # Create scan list
             scan_list = ft.ListView(spacing=8, padding=10, expand=True)
@@ -184,8 +223,12 @@ class ActivityLogView(BaseView):
                         content=ft.Column(
                             [
                                 ft.Icon(ft.Icons.INFO, size=60, color=ft.Colors.GREY_400),
+<<<<<<< HEAD
                                 ft.Text("No scan history yet", size=16, color=ft.Colors.GREY_600, weight=ft.FontWeight.BOLD),
                                 ft.Text("Scan records will appear here", size=12, color=ft.Colors.GREY_500)
+=======
+                                ft.Text("No scan history", color=ft.Colors.GREY_600)
+>>>>>>> upstream/main
                             ],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             spacing=10
@@ -201,6 +244,7 @@ class ActivityLogView(BaseView):
             
             return ft.Container(
                 content=scan_list,
+<<<<<<< HEAD
                 expand=True,
                 bgcolor=ft.Colors.GREY_50,
                 padding=10
@@ -219,14 +263,27 @@ class ActivityLogView(BaseView):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=10
                 ),
+=======
+                expand=True
+            )
+        except Exception as e:
+            print(f"Error building scan tab: {e}")
+            return ft.Container(
+                content=ft.Text(f"Error: {str(e)}", color=ft.Colors.RED),
+>>>>>>> upstream/main
                 expand=True,
                 alignment=ft.alignment.center
             )
     
     def _create_login_card(self, login: dict) -> ft.Card:
         """Create a card for a login entry."""
+<<<<<<< HEAD
         login_time_str = self._format_datetime(login.get('login_time', ''))
         logout_time_str = self._format_datetime(login.get('logout_time', '')) if login.get('logout_time') else "Still logged in"
+=======
+        login_time_str = self._format_datetime(login['login_time'])
+        logout_time_str = self._format_datetime(login['logout_time']) if login['logout_time'] else "Still logged in"
+>>>>>>> upstream/main
         
         return ft.Card(
             elevation=2,
@@ -240,7 +297,11 @@ class ActivityLogView(BaseView):
                                     ft.Column(
                                         [
                                             ft.Text(
+<<<<<<< HEAD
                                                 login.get('username', 'Unknown'),
+=======
+                                                login['username'],
+>>>>>>> upstream/main
                                                 weight=ft.FontWeight.BOLD,
                                                 size=14,
                                                 color=ft.Colors.BLACK87
@@ -260,7 +321,11 @@ class ActivityLogView(BaseView):
                             ),
                             padding=12
                         ),
+<<<<<<< HEAD
                         ft.Divider(height=1, color=ft.Colors.GREY_300),
+=======
+                        ft.Divider(height=1),
+>>>>>>> upstream/main
                         ft.Container(
                             content=ft.Column(
                                 [
@@ -277,8 +342,12 @@ class ActivityLogView(BaseView):
                                             ft.Text(
                                                 logout_time_str,
                                                 size=11,
+<<<<<<< HEAD
                                                 color=ft.Colors.ORANGE_700 if logout_time_str == "Still logged in" else ft.Colors.GREY_700,
                                                 weight=ft.FontWeight.BOLD if logout_time_str == "Still logged in" else ft.FontWeight.NORMAL
+=======
+                                                color=ft.Colors.ORANGE if logout_time_str == "Still logged in" else ft.Colors.GREY_700
+>>>>>>> upstream/main
                                             ),
                                         ],
                                         spacing=10
@@ -291,13 +360,18 @@ class ActivityLogView(BaseView):
                     ],
                     spacing=0
                 ),
+<<<<<<< HEAD
                 padding=0,
                 bgcolor=ft.Colors.WHITE
+=======
+                padding=0
+>>>>>>> upstream/main
             )
         )
     
     def _create_scan_card(self, scan: dict) -> ft.Card:
         """Create a card for a scan entry."""
+<<<<<<< HEAD
         scan_time_str = self._format_datetime(scan.get('scan_time', ''))
         
         # Get event name if available
@@ -306,6 +380,13 @@ class ActivityLogView(BaseView):
             event_name = event['name'] if event else f"Event {scan.get('event_id', 'Unknown')}"
         except:
             event_name = f"Event {scan.get('event_id', 'Unknown')}"
+=======
+        scan_time_str = self._format_datetime(scan['scan_time'])
+        
+        # Get event name if available
+        event = self.db.get_event_by_id(scan['event_id'])
+        event_name = event['name'] if event else f"Event {scan['event_id']}"
+>>>>>>> upstream/main
         
         return ft.Card(
             elevation=2,
@@ -319,7 +400,11 @@ class ActivityLogView(BaseView):
                                     ft.Column(
                                         [
                                             ft.Text(
+<<<<<<< HEAD
                                                 f"{scan.get('scanner_username', 'Unknown')} scanned",
+=======
+                                                f"{scan['scanner_username']} scanned",
+>>>>>>> upstream/main
                                                 weight=ft.FontWeight.BOLD,
                                                 size=14,
                                                 color=ft.Colors.BLACK87
@@ -339,27 +424,42 @@ class ActivityLogView(BaseView):
                             ),
                             padding=12
                         ),
+<<<<<<< HEAD
                         ft.Divider(height=1, color=ft.Colors.GREY_300),
+=======
+                        ft.Divider(height=1),
+>>>>>>> upstream/main
                         ft.Container(
                             content=ft.Column(
                                 [
                                     ft.Row(
                                         [
+<<<<<<< HEAD
                                             ft.Text("Student:", size=11, color=ft.Colors.GREY_700, weight=ft.FontWeight.BOLD),
                                             ft.Text(scan.get('scanned_user_name', 'Unknown'), size=11, color=ft.Colors.GREY_700),
+=======
+                                            ft.Text("Scanned User:", size=11, color=ft.Colors.GREY_700, weight=ft.FontWeight.BOLD),
+                                            ft.Text(scan['scanned_user_name'], size=11, color=ft.Colors.GREY_700),
+>>>>>>> upstream/main
                                         ],
                                         spacing=10
                                     ),
                                     ft.Row(
                                         [
+<<<<<<< HEAD
                                             ft.Text("Student ID:", size=11, color=ft.Colors.GREY_700, weight=ft.FontWeight.BOLD),
                                             ft.Text(scan.get('scanned_user_id', 'Unknown'), size=11, color=ft.Colors.GREY_700),
+=======
+                                            ft.Text("User ID:", size=11, color=ft.Colors.GREY_700, weight=ft.FontWeight.BOLD),
+                                            ft.Text(scan['scanned_user_id'], size=11, color=ft.Colors.GREY_700),
+>>>>>>> upstream/main
                                         ],
                                         spacing=10
                                     ),
                                     ft.Row(
                                         [
                                             ft.Text("Event:", size=11, color=ft.Colors.GREY_700, weight=ft.FontWeight.BOLD),
+<<<<<<< HEAD
                                             ft.Column(
                                                 [
                                                     ft.Text(
@@ -372,6 +472,9 @@ class ActivityLogView(BaseView):
                                                 ],
                                                 expand=True
                                             )
+=======
+                                            ft.Text(event_name, size=11, color=ft.Colors.GREY_700, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
+>>>>>>> upstream/main
                                         ],
                                         spacing=10
                                     ),
@@ -390,8 +493,12 @@ class ActivityLogView(BaseView):
                     ],
                     spacing=0
                 ),
+<<<<<<< HEAD
                 padding=0,
                 bgcolor=ft.Colors.WHITE
+=======
+                padding=0
+>>>>>>> upstream/main
             )
         )
     
@@ -400,6 +507,7 @@ class ActivityLogView(BaseView):
         if not iso_string:
             return "N/A"
         try:
+<<<<<<< HEAD
             # Try ISO format first
             dt = datetime.fromisoformat(iso_string.replace('Z', '+00:00'))
             return dt.strftime("%b %d, %Y %I:%M:%S %p")
@@ -411,3 +519,9 @@ class ActivityLogView(BaseView):
             except:
                 # Return as-is if can't parse
                 return iso_string
+=======
+            dt = datetime.fromisoformat(iso_string)
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            return iso_string
+>>>>>>> upstream/main

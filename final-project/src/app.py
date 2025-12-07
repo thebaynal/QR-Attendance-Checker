@@ -31,6 +31,7 @@ class MaScanApp:
         self.page.padding = 0
         self.page.window.width = WINDOW_WIDTH
         self.page.window.height = WINDOW_HEIGHT
+        self.page.window.icon = "final-project\\src\\assets\\MS_Logo_Blue.png"
         
         # Initialize views
         self.login_view = LoginView(self)
@@ -90,7 +91,15 @@ class MaScanApp:
                 event_id = route.split("/")[-1]
                 new_view = self.scan_view.build(event_id) if self.current_user else self.login_view.build()
             elif route == "/qr_generator":
-                new_view = self.qr_generator_view.build() if self.current_user else self.login_view.build()
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can generate QR codes", ft.Colors.RED)
+                        new_view = self.home_view.build() if self.current_user else self.login_view.build()
+                    else:
+                        new_view = self.qr_generator_view.build()
             elif route == "/user_management":
                 if not self.current_user:
                     new_view = self.login_view.build()
@@ -266,6 +275,7 @@ class MaScanApp:
                 title="Home",
                 on_click=on_home_click,
             ),
+<<<<<<< HEAD
             self._create_nav_item(
                 icon=ft.Icons.QR_CODE_2,
                 title="Generate QR Codes",
@@ -274,11 +284,18 @@ class MaScanApp:
         ]
         
         # Add admin-only menu items
+=======
+        ]
+        
+        # Add admin-only options
+        user_role = self.db.get_user_role(self.current_user) if self.current_user else None
+>>>>>>> upstream/main
         print(f"DEBUG: current_user={self.current_user}, user_role={user_role}")
         
         if user_role == 'admin':
             print("DEBUG: Adding admin menu items")
             menu_items.extend([
+<<<<<<< HEAD
                 self._create_nav_item(
                     icon=ft.Icons.ADMIN_PANEL_SETTINGS,
                     title="Manage Users",
@@ -292,6 +309,26 @@ class MaScanApp:
                     is_admin=True,
                 ),
             ])
+=======
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.QR_CODE),
+                    title=ft.Text("Generate QR Codes"),
+                    on_click=on_qr_click
+                ),
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.ADMIN_PANEL_SETTINGS),
+                    title=ft.Text("Manage Users"),
+                    on_click=on_user_mgmt_click
+                ),
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.HISTORY),
+                    title=ft.Text("Activity Log"),
+                    on_click=on_activity_log_click
+                )
+            ])
+        else:
+            print(f"DEBUG: NOT adding admin menu items (user_role={user_role})")
+>>>>>>> upstream/main
         
         # Divider and logout
         menu_items.extend([
