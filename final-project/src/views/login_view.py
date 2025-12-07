@@ -58,6 +58,10 @@ class LoginView(BaseView):
                 display_name = full_name[0] if full_name else username_value
                 
                 self.app.current_user = username_value
+                
+                # Record login in activity log
+                self.db.record_login(username_value)
+                
                 self.show_snackbar(f"Welcome, {display_name}!", ft.Colors.GREEN)
                 self.page.go("/home")
             else:

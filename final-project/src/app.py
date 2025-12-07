@@ -12,6 +12,7 @@ from views.scan_view import ScanView
 from views.create_event_view import CreateEventView
 from views.qr_generator_view import QRGeneratorView
 from views.user_management_view import UserManagementView
+from views.activity_log_view import ActivityLogView
 
 
 class MaScanApp:
@@ -40,6 +41,7 @@ class MaScanApp:
         self.create_event_view = CreateEventView(self)
         self.qr_generator_view = QRGeneratorView(self)
         self.user_management_view = UserManagementView(self)
+        self.activity_log_view = ActivityLogView(self)
         
         # Setup routing
         self.page.on_route_change = self.route_change
@@ -113,6 +115,16 @@ class MaScanApp:
                         new_view = self.home_view.build() if self.current_user else self.login_view.build()
                     else:
                         new_view = self.user_management_view.build()
+            elif route == "/activity_log":
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can access activity log", ft.Colors.RED)
+                        new_view = self.home_view.build() if self.current_user else self.login_view.build()
+                    else:
+                        new_view = self.activity_log_view.build()
             else:
                 print(f"WARNING: Unknown route {route}, showing home view")
                 new_view = self.home_view.build() if self.current_user else self.login_view.build()
@@ -204,6 +216,9 @@ class MaScanApp:
         def on_user_mgmt_click(e):
             self.navigate_user_management()
         
+        def on_activity_log_click(e):
+            self.navigate_activity_log()
+        
         def on_logout_click(e):
             self.logout_handler()
         
@@ -240,6 +255,11 @@ class MaScanApp:
                     leading=ft.Icon(ft.Icons.ADMIN_PANEL_SETTINGS),
                     title=ft.Text("Manage Users"),
                     on_click=on_user_mgmt_click
+                ),
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.HISTORY),
+                    title=ft.Text("Activity Log"),
+                    on_click=on_activity_log_click
                 )
             ])
         else:
@@ -311,6 +331,16 @@ class MaScanApp:
                 pass
         self.page.go("/user_management")
 
+    def navigate_activity_log(self):
+        """Navigate to activity log and close drawer."""
+        if self.drawer:
+            try:
+                self.drawer.open = False
+                self.drawer.update()
+            except:
+                pass
+        self.page.go("/activity_log")
+
     def logout_handler(self):
         """Handle logout and close drawer."""
         if self.drawer:
@@ -325,6 +355,10 @@ class MaScanApp:
 
     def logout(self):
         """Handle logout."""
+        # Record logout in activity log
+        if self.current_user:
+            self.db.record_logout(self.current_user)
+        
         # Stop camera if running
         if self.qr_scanner and self.qr_scanner.is_running:
             self.qr_scanner.stop()

@@ -337,6 +337,31 @@ class Database:
     def create_enhanced_tables(self):
         """Create enhanced tables for time-slot attendance tracking."""
         
+        # Login history table
+        login_history_table = """
+        CREATE TABLE IF NOT EXISTS login_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            login_time TEXT NOT NULL,
+            logout_time TEXT,
+            FOREIGN KEY (username) REFERENCES users(username)
+        )
+        """
+        
+        # Scan history table (tracks who scanned whom)
+        scan_history_table = """
+        CREATE TABLE IF NOT EXISTS scan_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scanner_username TEXT NOT NULL,
+            scanned_user_id TEXT NOT NULL,
+            scanned_user_name TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            scan_time TEXT NOT NULL,
+            FOREIGN KEY (scanner_username) REFERENCES users(username),
+            FOREIGN KEY (event_id) REFERENCES events(id)
+        )
+        """
+        
         # Enhanced students table with section/year info
         students_table = """
         CREATE TABLE IF NOT EXISTS students_qrcodes (
@@ -373,6 +398,8 @@ class Database:
         
         self._execute(students_table)
         self._execute(attendance_table)
+        self._execute(login_history_table)
+        self._execute(scan_history_table)
         
         # Ensure required columns exist (migration)
         self._add_column_if_not_exists('students_qrcodes', 'year_level', 'TEXT')
@@ -515,3 +542,126 @@ class Database:
                 'section': result[3]
             }
         return None
+
+    # Login and Activity Tracking Methods
+    def record_login(self, username: str) -> bool:
+        """Record a user login."""
+        try:
+            query = "INSERT INTO login_history (username, login_time) VALUES (?, ?)"
+            self._execute(query, (username, datetime.now().isoformat()))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording login: {e}")
+            return False
+
+    def record_logout(self, username: str) -> bool:
+        """Record a user logout (updates the most recent login)."""
+        try:
+            query = """
+            UPDATE login_history 
+            SET logout_time = ? 
+            WHERE username = ? AND logout_time IS NULL
+            ORDER BY login_time DESC
+            LIMIT 1
+            """
+            self._execute(query, (datetime.now().isoformat(), username))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording logout: {e}")
+            return False
+
+    def record_scan(self, scanner_username: str, scanned_user_id: str, 
+                   scanned_user_name: str, event_id: str) -> bool:
+        """Record a scan event (who scanned whom)."""
+        try:
+            query = """
+            INSERT INTO scan_history 
+            (scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time) 
+            VALUES (?, ?, ?, ?, ?)
+            """
+            self._execute(query, (scanner_username, scanned_user_id, scanned_user_name, 
+                                event_id, datetime.now().isoformat()))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording scan: {e}")
+            return False
+
+    def get_recent_logins(self, limit: int = 20) -> list:
+        """Get recent login history."""
+        try:
+            query = """
+            SELECT username, login_time, logout_time
+            FROM login_history
+            ORDER BY login_time DESC
+            LIMIT ?
+            """
+            results = self._execute(query, (limit,), fetch_all=True)
+            
+            logins = []
+            if results:
+                for row in results:
+                    username, login_time, logout_time = row
+                    logins.append({
+                        'username': username,
+                        'login_time': login_time,
+                        'logout_time': logout_time
+                    })
+            return logins
+        except sqlite3.Error as e:
+            print(f"Error getting login history: {e}")
+            return []
+
+    def get_recent_scans(self, limit: int = 20) -> list:
+        """Get recent scan history."""
+        try:
+            query = """
+            SELECT scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time
+            FROM scan_history
+            ORDER BY scan_time DESC
+            LIMIT ?
+            """
+            results = self._execute(query, (limit,), fetch_all=True)
+            
+            scans = []
+            if results:
+                for row in results:
+                    scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time = row
+                    scans.append({
+                        'scanner_username': scanner_username,
+                        'scanned_user_id': scanned_user_id,
+                        'scanned_user_name': scanned_user_name,
+                        'event_id': event_id,
+                        'scan_time': scan_time
+                    })
+            return scans
+        except sqlite3.Error as e:
+            print(f"Error getting scan history: {e}")
+            return []
+
+    def get_scans_by_scanner(self, username: str, limit: int = 20) -> list:
+        """Get scans performed by a specific scanner."""
+        try:
+            query = """
+            SELECT scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time
+            FROM scan_history
+            WHERE scanner_username = ?
+            ORDER BY scan_time DESC
+            LIMIT ?
+            """
+            results = self._execute(query, (username, limit), fetch_all=True)
+            
+            scans = []
+            if results:
+                for row in results:
+                    scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time = row
+                    scans.append({
+                        'scanner_username': scanner_username,
+                        'scanned_user_id': scanned_user_id,
+                        'scanned_user_name': scanned_user_name,
+                        'event_id': event_id,
+                        'scan_time': scan_time
+                    })
+            return scans
+        except sqlite3.Error as e:
+            print(f"Error getting scans by scanner: {e}")
+            return []

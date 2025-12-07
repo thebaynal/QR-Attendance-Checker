@@ -409,6 +409,16 @@ class ScanView(BaseView):
                     # Record attendance
                     success = self.db.record_timeslot_attendance(event_id, school_id, current_time_slot)
                     
+                    # Record scan in activity log
+                    if success and self.app.current_user:
+                        student_name = student.get('name', school_id)
+                        self.db.record_scan(
+                            scanner_username=self.app.current_user,
+                            scanned_user_id=school_id,
+                            scanned_user_name=student_name,
+                            event_id=event_id
+                        )
+                    
                     if success:
                         # Show success feedback with animation
                         student_name = student.get('name', school_id)
