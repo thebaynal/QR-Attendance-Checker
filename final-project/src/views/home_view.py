@@ -503,7 +503,7 @@ class HomeView(BaseView):
                                 ft.Column(
                                     [
                                         ft.Text(
-                                            "Events Lists",
+                                            "My Events",
                                             size=34,
                                             weight=ft.FontWeight.BOLD,
                                             color=ft.Colors.GREY_900,
@@ -650,13 +650,13 @@ class HomeView(BaseView):
                     ],
                     spacing=0,
                 ),
-                padding=ft.padding.all(24),
+                padding=ft.padding.symmetric(horizontal=24, vertical=28),
                 bgcolor=ft.Colors.WHITE,
                 shadow=ft.BoxShadow(
                     spread_radius=0,
-                    blur_radius=10,
-                    color=ft.Colors.with_opacity(0.06, ft.Colors.BLACK),
-                    offset=ft.Offset(0, 2),
+                    blur_radius=16,
+                    color=ft.Colors.with_opacity(0.08, ft.Colors.BLACK),
+                    offset=ft.Offset(0, 3),
                 ),
             )
 

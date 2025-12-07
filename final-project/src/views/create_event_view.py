@@ -43,10 +43,11 @@ class CreateEventView(BaseView):
         )
         
         desc_field = self.create_modern_text_field(
-            label="Description (Optional)",
+            label="Describe Event",
             hint_text="Add event details or notes...",
             multiline=True,
             width=330,
+            
         )
         
         # Status message

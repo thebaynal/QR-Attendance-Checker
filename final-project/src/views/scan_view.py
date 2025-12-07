@@ -38,7 +38,7 @@ class ScanView(BaseView):
         # Premium input field
         qr_input = ft.TextField(
             label="Enter ID manually",
-            hint_text="e.g., E101 or scan QR code",
+            hint_text="",
             prefix_icon=ft.Icons.QR_CODE_2,
             height=56,
             border_radius=14,
