@@ -1,0 +1,122 @@
+================================================================================
+BUILDING APK LOCALLY ON WINDOWS WITH WSL
+================================================================================
+
+Since your network blocks external build services, we'll build locally using
+Windows Subsystem for Linux (WSL2) + buildozer.
+
+================================================================================
+STEP 1: Install WSL2 (One-time setup)
+================================================================================
+
+Open PowerShell as Administrator and run:
+
+wsl --install
+
+This installs WSL2 with Ubuntu. You may need to restart your computer.
+
+After installation, verify it works:
+wsl --list --verbose
+
+================================================================================
+STEP 2: Set up Ubuntu on WSL
+================================================================================
+
+1. Open Ubuntu terminal (search "Ubuntu" in Windows Start menu)
+
+2. Update package lists:
+   sudo apt update
+   sudo apt upgrade -y
+
+3. Install required dependencies:
+   sudo apt install -y \
+     python3 \
+     python3-pip \
+     openjdk-11-jdk \
+     build-essential \
+     git \
+     libffi-dev \
+     libssl-dev
+
+4. Install buildozer and Cython:
+   pip3 install buildozer cython
+
+5. Verify installation:
+   buildozer --version
+
+================================================================================
+STEP 3: Set up Android SDK/NDK
+================================================================================
+
+The first time you run buildozer, it will automatically download and set up
+the Android SDK and NDK. This takes time (~5-10 minutes) but only happens once.
+
+================================================================================
+STEP 4: Build the APK
+================================================================================
+
+In Ubuntu terminal, navigate to your project:
+
+cd /mnt/c/Users/thebaynal/Desktop/QR-Attendance-Checker
+
+Then run:
+
+buildozer android debug
+
+This will:
+1. Download Android SDK/NDK (~2GB)
+2. Compile your Python code
+3. Create APK file
+4. Save to: bin/qrattendance-*.apk
+
+Total time: 15-30 minutes (first build is slower)
+
+================================================================================
+STEP 5: Find and Install the APK
+================================================================================
+
+After build completes, your APK is at:
+
+C:\Users\thebaynal\Desktop\QR-Attendance-Checker\bin\qrattendance-*.apk
+
+Transfer to your phone and install. You can:
+1. Email it to yourself
+2. Use Google Drive
+3. Use a file transfer app
+4. Use adb (Android Debug Bridge)
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Issue: "buildozer: command not found"
+Fix: Make sure you installed it with pip3: pip3 install buildozer
+
+Issue: "Java not found"
+Fix: Install Java: sudo apt install -y openjdk-11-jdk
+
+Issue: "Out of disk space"
+Fix: The build needs ~3GB free space
+
+Issue: Build takes very long
+Fix: First build is slow (downloads SDK). Subsequent builds are faster.
+
+Issue: Permission denied errors
+Fix: Run: sudo chown -R $USER ~/.buildozer
+
+================================================================================
+QUICK START (After initial setup)
+================================================================================
+
+Every time you want to rebuild:
+
+1. Open Ubuntu terminal
+2. Navigate to project:
+   cd /mnt/c/Users/thebaynal/Desktop/QR-Attendance-Checker
+
+3. Build:
+   buildozer android debug
+
+4. Find APK in bin/ folder
+
+================================================================================

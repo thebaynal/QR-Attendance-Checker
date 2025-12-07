@@ -40,6 +40,10 @@ def require_api_key(f):
 # PUBLIC ENDPOINTS (No API key required)
 # ============================================================================
 
+# ============================================================================
+# PUBLIC ENDPOINTS (No API key required)
+# ============================================================================
+
 @app.route('/api/status', methods=['GET'])
 def status():
     """Health check endpoint - no auth required."""
