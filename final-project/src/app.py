@@ -30,7 +30,7 @@ class MaScanApp:
         self.page.padding = 0
         self.page.window.width = WINDOW_WIDTH
         self.page.window.height = WINDOW_HEIGHT
-        self.page.window.icon = "C:\\Users\\Asus\\Documents\\QR-Attendance-Checker\\final-project\\src\\assets\\MS_Logo_Blue.ico"
+        self.page.window.icon = "final-project\\src\\assets\\MS_Logo_Blue.png"
         
         # Initialize views
         self.login_view = LoginView(self)

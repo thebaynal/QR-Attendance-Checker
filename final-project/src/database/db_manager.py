@@ -439,18 +439,22 @@ class Database:
         SELECT 
             s.school_id,
             s.name,
-            COALESCE(s.year_level, 'N/A') as year_level,
-            COALESCE(s.section, 'N/A') as section,
-            COALESCE(a.morning_time, '') as morning_time,
-            COALESCE(a.morning_status, 'Absent') as morning_status,
-            COALESCE(a.lunch_time, '') as lunch_time,
-            COALESCE(a.lunch_status, 'Absent') as lunch_status,
-            COALESCE(a.afternoon_time, '') as afternoon_time,
-            COALESCE(a.afternoon_status, 'Absent') as afternoon_status
+            COALESCE(json_extract(s.csv_data, '$.Year'), 'N/A') AS year_level,
+            COALESCE(json_extract(s.csv_data, '$.Section'), 'N/A') AS section,
+            COALESCE(a.morning_time, '') AS morning_time,
+            COALESCE(a.morning_status, 'Absent') AS morning_status,
+            COALESCE(a.lunch_time, '') AS lunch_time,
+            COALESCE(a.lunch_status, 'Absent') AS lunch_status,
+            COALESCE(a.afternoon_time, '') AS afternoon_time,
+            COALESCE(a.afternoon_status, 'Absent') AS afternoon_status
         FROM students_qrcodes s
         LEFT JOIN attendance_timeslots a 
             ON s.school_id = a.user_id AND a.event_id = ?
-        ORDER BY s.year_level, s.section, s.name
+        ORDER BY 
+            json_extract(s.csv_data, '$.Year'),
+            json_extract(s.csv_data, '$.Section'),
+            s.name;
+
         """
         
         results = self._execute(query, (event_id,), fetch_all=True)
