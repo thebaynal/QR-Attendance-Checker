@@ -5,12 +5,8 @@ import sqlite3
 import time
 import random
 import bcrypt
-import os
 from datetime import datetime
 from typing import Optional, Dict
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 class Database:
@@ -18,8 +14,6 @@ class Database:
     
     def __init__(self, db_name: str = "mascan_attendance.db"):
         self.db_name = db_name
-        self.admin_username = os.getenv('ADMIN_USERNAME', 'admin')
-        self.admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
         self.create_tables()
         self.create_enhanced_tables()
         self._ensure_admin_role()
@@ -75,40 +69,6 @@ class Database:
                     print(f"Column '{column}' added successfully")
         except sqlite3.Error as e:
             print(f"Database error adding column: {e}")
-
-    # Password Hashing Methods
-    def hash_password(self, password: str) -> str:
-        """Hash a password using bcrypt.
-        
-        Args:
-            password: Plain text password to hash
-            
-        Returns:
-            Hashed password string (bcrypt hash)
-        """
-        try:
-            salt = bcrypt.gensalt(rounds=12)
-            hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-            return hashed.decode('utf-8')
-        except Exception as e:
-            print(f"Error hashing password: {e}")
-            return password
-
-    def verify_password(self, password: str, hashed: str) -> bool:
-        """Verify a plain text password against a bcrypt hash.
-        
-        Args:
-            password: Plain text password to verify
-            hashed: Bcrypt hash to verify against
-            
-        Returns:
-            True if password matches hash, False otherwise
-        """
-        try:
-            return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-        except Exception as e:
-            print(f"Error verifying password: {e}")
-            return False
 
     def create_tables(self):
         """Create necessary tables if they don't exist."""
@@ -175,15 +135,14 @@ class Database:
                     else:
                         print("Admin user already has 'admin' role")
                 else:
-                    # Create admin user with hashed password from environment
+                    # Create admin user
                     print("Creating default admin user")
-                    hashed_password = self.hash_password(self.admin_password)
                     cursor.execute(
                         "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
-                        (self.admin_username, hashed_password, 'Administrator', 'admin', datetime.now().isoformat())
+                        ('admin', 'admin123', 'Administrator', 'admin', datetime.now().isoformat())
                     )
                     conn.commit()
-                    print(f"Default admin user '{self.admin_username}' created with hashed password")
+                    print("Default admin user created")
         except sqlite3.Error as e:
             print(f"Error ensuring admin user: {e}")
 
@@ -342,30 +301,30 @@ class Database:
                 print(f"Fallback error: {fallback_error}")
                 return {'morning': 0, 'afternoon': 0}
 
+    # Password hashing methods
+    def hash_password(self, password: str) -> str:
+        """Hash a password using bcrypt."""
+        salt = bcrypt.gensalt(rounds=12)
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    
+    def verify_password(self, password: str, stored_hash: str) -> bool:
+        """Verify a password against its bcrypt hash."""
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+        except Exception:
+            return False
+
     # User authentication
     def authenticate_user(self, username: str, password: str) -> Optional[str]:
-        """Authenticate a user with bcrypt password verification.
-        
-        Args:
-            username: Username to authenticate
-            password: Plain text password to verify
-            
-        Returns:
-            Username if authentication successful, None otherwise
-        """
-        query = "SELECT username, password FROM users WHERE username = ?"
+        """Authenticate a user and return their username if successful."""
+        query = "SELECT password FROM users WHERE username = ?"
         result = self._execute(query, (username,), fetch_one=True)
         
         if result:
-            username_db, hashed_password = result
+            stored_hash = result[0]
             # Verify password using bcrypt
-            if self.verify_password(password, hashed_password):
-                return username_db
-            else:
-                print(f"Password verification failed for user: {username}")
-        else:
-            print(f"User not found: {username}")
-        
+            if self.verify_password(password, stored_hash):
+                return username
         return None
     
     def get_user_role(self, username: str) -> Optional[str]:
@@ -375,33 +334,21 @@ class Database:
         return result[0] if result else None
     
     def create_user(self, username: str, password: str, full_name: str, role: str = 'scanner') -> bool:
-        """Create a new user account with hashed password and specified role.
-        
-        Args:
-            username: Username for the new account
-            password: Plain text password (will be hashed)
-            full_name: Full name of the user
-            role: User role ('admin' or 'scanner')
-            
-        Returns:
-            True if user created successfully, False otherwise
-        """
+        """Create a new user account with specified role."""
         # Check if user already exists
         check_query = "SELECT username FROM users WHERE username = ?"
         existing = self._execute(check_query, (username,), fetch_one=True)
         if existing:
-            print(f"User already exists: {username}")
             return False
         
         try:
-            # Hash password before storing
+            # Hash the password before storing
             hashed_password = self.hash_password(password)
             query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (username, hashed_password, full_name, role, datetime.now().isoformat()))
                 conn.commit()
-                print(f"User created successfully: {username}")
                 return cursor.rowcount > 0
         except sqlite3.Error as e:
             print(f"Database error creating user: {e}")

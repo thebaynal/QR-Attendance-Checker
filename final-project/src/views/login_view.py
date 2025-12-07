@@ -151,8 +151,41 @@ class LoginView(BaseView):
                                             spacing=8,
                                             horizontal_alignment=ft.CrossAxisAlignment.CENTER
                                         ),
-                                        ft.Container(height=100),
 
+                                        ft.Container(height=16),
+
+                                        # Default login info box
+                                        ft.Container(
+                                            content=ft.Column(
+                                                [
+                                                    ft.Text(
+                                                        "Default Login:",
+                                                        size=12,
+                                                        color=ft.Colors.GREY_600,
+                                                        weight=ft.FontWeight.BOLD
+                                                    ),
+                                                    ft.Text(
+                                                        f"Username: {DEFAULT_USERNAME}",
+                                                        size=12,
+                                                        color=ft.Colors.GREY_600
+                                                    ),
+                                                    ft.Text(
+                                                        f"Password: {DEFAULT_PASSWORD}",
+                                                        size=12,
+                                                        color=ft.Colors.GREY_600
+                                                    ),
+                                                ],
+                                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                                spacing=4
+                                            ),
+                                            padding=12,
+                                            border=ft.border.all(1, ft.Colors.GREY_200),
+                                            border_radius=8,
+                                            bgcolor=ft.Colors.GREY_50,
+                                            width=340
+                                        ),
+
+                                        ft.Container(height=12),
                                         ft.Text(
                                             APP_TAGLINE,
                                             size=12,
