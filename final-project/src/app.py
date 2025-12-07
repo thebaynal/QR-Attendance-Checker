@@ -12,6 +12,7 @@ from views.scan_view import ScanView
 from views.create_event_view import CreateEventView
 from views.qr_generator_view import QRGeneratorView
 from views.user_management_view import UserManagementView
+from views.activity_log_view import ActivityLogView
 
 
 class MaScanApp:
@@ -39,6 +40,7 @@ class MaScanApp:
         self.create_event_view = CreateEventView(self)
         self.qr_generator_view = QRGeneratorView(self)
         self.user_management_view = UserManagementView(self)
+        self.activity_log_view = ActivityLogView(self)
         
         # Setup routing
         self.page.on_route_change = self.route_change
@@ -50,12 +52,9 @@ class MaScanApp:
     def view_pop(self, e):
         """Handle back button."""
         if len(self.page.views) > 1:
-            # Remove the top view and restore the previous view in-place
             try:
                 self.page.views.pop()
                 top_view = self.page.views[-1]
-                # Instead of calling page.go (which triggers route_change),
-                # restore the previous view object and update the page.
                 self.page.route = top_view.route
                 self.page.update()
             except Exception as ex:
@@ -74,8 +73,6 @@ class MaScanApp:
         except Exception:
             pass
 
-        # Build the requested view and replace current views with it.
-        # Avoid calling `page.go()` inside this method to prevent recursion.
         self.page.views.clear()
         route = self.page.route
 
@@ -104,14 +101,22 @@ class MaScanApp:
                         new_view = self.home_view.build() if self.current_user else self.login_view.build()
                     else:
                         new_view = self.user_management_view.build()
+            elif route == "/activity_log":
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can access activity log", ft.Colors.RED)
+                        new_view = self.home_view.build() if self.current_user else self.login_view.build()
+                    else:
+                        new_view = self.activity_log_view.build()
             else:
                 print(f"WARNING: Unknown route {route}, showing home view")
                 new_view = self.home_view.build() if self.current_user else self.login_view.build()
 
-            # Append the constructed view and update page
             if new_view is not None:
                 self.page.views.append(new_view)
-                # Ensure the page.route matches the view's route
                 try:
                     self.page.route = new_view.route
                 except Exception:
@@ -122,7 +127,6 @@ class MaScanApp:
             print(f"ERROR in route_change while building view: {e}")
             import traceback
             traceback.print_exc()
-            # Render an error view instead of recursively navigating
             error_view = ft.View(
                 route,
                 [
@@ -152,12 +156,10 @@ class MaScanApp:
         """Show snackbar message."""
         try:
             snackbar = ft.SnackBar(content=ft.Text(message), bgcolor=color)
-            # Use page.snack_bar pattern and open it, then update the page
             self.page.snack_bar = snackbar
             self.page.snack_bar.open = True
             self.page.update()
         except Exception as ex:
-            # Fallback to printing if snackbar cannot be shown
             print(f"ERROR showing snackbar: {ex}")
             import traceback
             traceback.print_exc()
@@ -196,7 +198,6 @@ class MaScanApp:
 
     def create_drawer(self):
         """Create modern navigation drawer with enhanced styling."""
-        # Build menu items dynamically based on user role
         def on_home_click(e):
             self.navigate_home()
         
@@ -205,6 +206,9 @@ class MaScanApp:
         
         def on_user_mgmt_click(e):
             self.navigate_user_management()
+        
+        def on_activity_log_click(e):
+            self.navigate_activity_log()
         
         def on_logout_click(e):
             self.logout_handler()
@@ -269,19 +273,25 @@ class MaScanApp:
             ),
         ]
         
-        # Add user management only for admin users
+        # Add admin-only menu items
         print(f"DEBUG: current_user={self.current_user}, user_role={user_role}")
         
         if user_role == 'admin':
-            print("DEBUG: Adding Manage Users menu item")
-            menu_items.append(
+            print("DEBUG: Adding admin menu items")
+            menu_items.extend([
                 self._create_nav_item(
                     icon=ft.Icons.ADMIN_PANEL_SETTINGS,
                     title="Manage Users",
                     on_click=on_user_mgmt_click,
                     is_admin=True,
-                )
-            )
+                ),
+                self._create_nav_item(
+                    icon=ft.Icons.HISTORY,
+                    title="Activity Log",
+                    on_click=on_activity_log_click,
+                    is_admin=True,
+                ),
+            ])
         
         # Divider and logout
         menu_items.extend([
@@ -345,13 +355,11 @@ class MaScanApp:
     def open_end_drawer(self):
         """Open the navigation drawer."""
         try:
-            # Remove old drawer if it exists
             if self.drawer and self.drawer in self.page.overlay:
                 self.page.overlay.remove(self.drawer)
         except:
             pass
         
-        # Create and add new drawer
         self.drawer = self.create_drawer()
         self.page.overlay.append(self.drawer)
         self.drawer.open = True
@@ -387,6 +395,16 @@ class MaScanApp:
                 pass
         self.page.go("/user_management")
 
+    def navigate_activity_log(self):
+        """Navigate to activity log and close drawer."""
+        if self.drawer:
+            try:
+                self.drawer.open = False
+                self.drawer.update()
+            except:
+                pass
+        self.page.go("/activity_log")
+
     def logout_handler(self):
         """Handle logout and close drawer."""
         if self.drawer:
@@ -401,6 +419,10 @@ class MaScanApp:
 
     def logout(self):
         """Handle logout."""
+        # Record logout in activity log
+        if self.current_user:
+            self.db.record_logout(self.current_user)
+        
         # Stop camera if running
         if self.qr_scanner and self.qr_scanner.is_running:
             self.qr_scanner.stop()

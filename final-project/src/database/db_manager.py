@@ -21,7 +21,6 @@ class Database:
         try:
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
-                # Force update admin user's role to 'admin'
                 cursor.execute("UPDATE users SET role = 'admin' WHERE username = 'admin'")
                 conn.commit()
                 print("Ensured admin user has 'admin' role")
@@ -55,7 +54,6 @@ class Database:
         try:
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
-                # Check if column exists
                 cursor.execute(f"PRAGMA table_info({table})")
                 columns = [col[1] for col in cursor.fetchall()]
                 
@@ -78,7 +76,6 @@ class Database:
         )
         """
         
-        # Updated attendance table with time_slot column
         attendance_table_sql = """
         CREATE TABLE IF NOT EXISTS attendance (
             event_id TEXT NOT NULL,
@@ -106,33 +103,24 @@ class Database:
         self._execute(attendance_table_sql)
         self._execute(users_table_sql)
         
-        # Add columns to existing tables if they don't exist (migration)
         self._add_column_if_not_exists('users', 'role', "TEXT DEFAULT 'scanner'")
         self._add_column_if_not_exists('users', 'created_at', "TEXT DEFAULT ''")
         self._add_column_if_not_exists('attendance', 'time_slot', "TEXT DEFAULT 'morning'")
         
-        # Ensure admin user exists and has correct role
         try:
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
-                
-                # Check if admin exists
                 cursor.execute("SELECT username, role FROM users WHERE username = 'admin'")
                 admin_row = cursor.fetchone()
                 
                 if admin_row:
                     username, current_role = admin_row
                     print(f"Admin user found with role: {current_role}")
-                    
-                    # Update role to 'admin' if it's not already
                     if current_role != 'admin':
                         cursor.execute("UPDATE users SET role = 'admin' WHERE username = 'admin'")
                         conn.commit()
                         print("Admin user role updated to 'admin'")
-                    else:
-                        print("Admin user already has 'admin' role")
                 else:
-                    # Create admin user with 12-hour format timestamp
                     print("Creating default admin user")
                     cursor.execute(
                         "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -144,9 +132,33 @@ class Database:
             print(f"Error ensuring admin user: {e}")
 
     def create_enhanced_tables(self):
-        """Create enhanced tables for time-slot attendance tracking."""
+        """Create enhanced tables for activity tracking."""
         
-        # Enhanced students table with section/year info
+        # Login history table
+        login_history_table = """
+        CREATE TABLE IF NOT EXISTS login_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            login_time TEXT NOT NULL,
+            logout_time TEXT,
+            FOREIGN KEY (username) REFERENCES users(username)
+        )
+        """
+        
+        # Scan history table
+        scan_history_table = """
+        CREATE TABLE IF NOT EXISTS scan_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scanner_username TEXT NOT NULL,
+            scanned_user_id TEXT NOT NULL,
+            scanned_user_name TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            scan_time TEXT NOT NULL,
+            FOREIGN KEY (scanner_username) REFERENCES users(username),
+            FOREIGN KEY (event_id) REFERENCES events(id)
+        )
+        """
+        
         students_table = """
         CREATE TABLE IF NOT EXISTS students_qrcodes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,8 +173,7 @@ class Database:
         )
         """
         
-        # Enhanced attendance with separate columns for each time slot
-        attendance_table = """
+        attendance_timeslots_table = """
         CREATE TABLE IF NOT EXISTS attendance_timeslots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id TEXT NOT NULL,
@@ -181,9 +192,10 @@ class Database:
         """
         
         self._execute(students_table)
-        self._execute(attendance_table)
+        self._execute(attendance_timeslots_table)
+        self._execute(login_history_table)
+        self._execute(scan_history_table)
         
-        # Create indexes for better performance
         self._execute("CREATE INDEX IF NOT EXISTS idx_students_section ON students_qrcodes(year_level, section)")
         self._execute("CREATE INDEX IF NOT EXISTS idx_attendance_event ON attendance_timeslots(event_id)")
 
@@ -234,10 +246,10 @@ class Database:
         result = self._execute(event_query, (event_id,))
         return result is not None
 
-    # Attendance operations with time slot support
+    # Attendance operations
     def record_attendance(self, event_id: str, user_id: str, user_name: str, 
                          timestamp: str, status: str = "Checked In"):
-        """Record a new attendance entry (backward compatible - defaults to morning)."""
+        """Record attendance (backward compatible)."""
         return self.record_timeslot_attendance(event_id, user_id, user_name, 
                                               timestamp, "morning", status)
     
@@ -246,7 +258,6 @@ class Database:
                                   time_slot: str = "morning", 
                                   status: str = "Checked In") -> bool:
         """Record attendance for a specific time slot."""
-        # Use 12-hour format for timestamp
         if not timestamp:
             timestamp = datetime.now().strftime("%I:%M:%S %p")
         
@@ -261,12 +272,6 @@ class Database:
             print(f"Integrity error: {e}")
             return False
 
-    def is_user_checked_in(self, event_id: str, user_id: str) -> Optional[str]:
-        """Check if a user has already checked in for a specific event (any time slot)."""
-        query = "SELECT timestamp FROM attendance WHERE event_id = ? AND user_id = ? LIMIT 1"
-        result = self._execute(query, (event_id, user_id), fetch_one=True)
-        return result[0] if result else None
-    
     def check_timeslot_attendance(self, event_id: str, user_id: str, time_slot: str) -> bool:
         """Check if user is already checked in for a specific time slot."""
         query = """
@@ -290,7 +295,6 @@ class Database:
         if results:
             for row in results:
                 user_id, user_name, timestamp, status, time_slot = row
-                # Use composite key for users who attended multiple slots
                 key = f"{user_id}_{time_slot}"
                 attendance_log[key] = {
                     "name": user_name,
@@ -341,26 +345,26 @@ class Database:
         
         results = self._execute(query, (event_id,), fetch_all=True)
         
-        # Group by section
         grouped_data = {}
-        for row in results:
-            school_id, name, year, section, m_time, m_status, l_time, l_status, a_time, a_status = row
-            
-            section_key = f"{year or 'N/A'} - {section or 'N/A'}"
-            
-            if section_key not in grouped_data:
-                grouped_data[section_key] = []
-            
-            grouped_data[section_key].append({
-                'school_id': school_id,
-                'name': name,
-                'morning_time': m_time,
-                'morning_status': m_status,
-                'lunch_time': l_time,
-                'lunch_status': l_status,
-                'afternoon_time': a_time,
-                'afternoon_status': a_status
-            })
+        if results:
+            for row in results:
+                school_id, name, year, section, m_time, m_status, l_time, l_status, a_time, a_status = row
+                
+                section_key = f"{year or 'N/A'} - {section or 'N/A'}"
+                
+                if section_key not in grouped_data:
+                    grouped_data[section_key] = []
+                
+                grouped_data[section_key].append({
+                    'school_id': school_id,
+                    'name': name,
+                    'morning_time': m_time,
+                    'morning_status': m_status,
+                    'lunch_time': l_time,
+                    'lunch_status': l_status,
+                    'afternoon_time': a_time,
+                    'afternoon_status': a_status
+                })
         
         return grouped_data
 
@@ -379,13 +383,107 @@ class Database:
     
     def create_user(self, username: str, password: str, full_name: str, role: str = 'scanner') -> bool:
         """Create a new user account with specified role."""
-        # Check if user already exists
         check_query = "SELECT username FROM users WHERE username = ?"
         existing = self._execute(check_query, (username,), fetch_one=True)
         if existing:
             return False
         
-        # Use 12-hour format for created_at timestamp (YOUR format preserved)
+        # Use 12-hour format for created_at timestamp
         query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
         result = self._execute(query, (username, password, full_name, role, datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")))
         return result is not None
+
+    # Activity Log Methods
+    def record_login(self, username: str) -> bool:
+        """Record a user login."""
+        try:
+            query = "INSERT INTO login_history (username, login_time) VALUES (?, ?)"
+            self._execute(query, (username, datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording login: {e}")
+            return False
+
+    def record_logout(self, username: str) -> bool:
+        """Record a user logout."""
+        try:
+            query = """
+            UPDATE login_history 
+            SET logout_time = ? 
+            WHERE username = ? AND logout_time IS NULL
+            ORDER BY login_time DESC
+            LIMIT 1
+            """
+            self._execute(query, (datetime.now().strftime("%Y-%m-%d %I:%M:%S %p"), username))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording logout: {e}")
+            return False
+
+    def record_scan(self, scanner_username: str, scanned_user_id: str, 
+                   scanned_user_name: str, event_id: str) -> bool:
+        """Record a scan event."""
+        try:
+            query = """
+            INSERT INTO scan_history 
+            (scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time) 
+            VALUES (?, ?, ?, ?, ?)
+            """
+            self._execute(query, (scanner_username, scanned_user_id, scanned_user_name, 
+                                event_id, datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording scan: {e}")
+            return False
+
+    def get_recent_logins(self, limit: int = 20) -> list:
+        """Get recent login history."""
+        try:
+            query = """
+            SELECT username, login_time, logout_time
+            FROM login_history
+            ORDER BY login_time DESC
+            LIMIT ?
+            """
+            results = self._execute(query, (limit,), fetch_all=True)
+            
+            logins = []
+            if results:
+                for row in results:
+                    username, login_time, logout_time = row
+                    logins.append({
+                        'username': username,
+                        'login_time': login_time,
+                        'logout_time': logout_time if logout_time else "Still logged in"
+                    })
+            return logins
+        except sqlite3.Error as e:
+            print(f"Error getting login history: {e}")
+            return []
+
+    def get_recent_scans(self, limit: int = 20) -> list:
+        """Get recent scan history."""
+        try:
+            query = """
+            SELECT scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time
+            FROM scan_history
+            ORDER BY scan_time DESC
+            LIMIT ?
+            """
+            results = self._execute(query, (limit,), fetch_all=True)
+            
+            scans = []
+            if results:
+                for row in results:
+                    scanner_username, scanned_user_id, scanned_user_name, event_id, scan_time = row
+                    scans.append({
+                        'scanner_username': scanner_username,
+                        'scanned_user_id': scanned_user_id,
+                        'scanned_user_name': scanned_user_name,
+                        'event_id': event_id,
+                        'scan_time': scan_time
+                    })
+            return scans
+        except sqlite3.Error as e:
+            print(f"Error getting scan history: {e}")
+            return []
