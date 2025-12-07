@@ -1,197 +1,349 @@
-# MaScan — QR Attendance Checker (Developer Documentation)
+# 📱 MaScan - QR Attendance Management System
 
-<h2>To-Do List</h2>
-<ul>
-    <li>Make export to CSV per event.</li> - DONE
-    <li>Add "Download All QR" in the Generate QR Codes section.</li> - DONE
-    <li>Add time options: Morning, Afternoon.
-        <ul>
-            <li>If food, also add Lunch (clickable).</li>
-        </ul>
-    </li>
-    <li>Fix: Ensure students can only mark attendance <strong>once per session</strong> (e.g., Morning 1, Afternoon 1).</li>
-    <li>Add category of attendance (Food or Attendance).</li>
-    <li>UI improvements.</li>
-</ul>
+<div align="center">
 
-# MaScan — QR Attendance Checker (Developer Documentation)
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![Flet](https://img.shields.io/badge/Flet-0.23.0-purple.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Status](https://img.shields.io/badge/Status-Active-success.svg)
 
-This document describes the architecture, key components, data model, runtime flows, and developer guidelines for the MaScan application contained in this workspace.
+*A modern, efficient QR code-based attendance tracking system built with Python and Flet*
 
-Table of contents
-- Overview
-- Quick start
-- Project layout (files & symbols)
-- Core components and responsibilities
-- Data model & database access
-- Key runtime flows
-  - App startup & routing
-  - Authentication (login)
-  - Event lifecycle (create / delete / view)
-  - Scanning & QR processing
-  - QR generation & download
-  - User management
-  - Export (PDF) flow
-- Extending the app (adding views / features)
-- Troubleshooting & notes
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Screenshots](#-screenshots) • [Contributing](#-contributing)
+
+</div>
 
 ---
 
-Overview
-- MaScan is a desktop / web app built with Flet that provides event-based attendance tracking using QR codes.
-- Main entry: [`main.main`](final-project/src/main.py) — see [final-project/src/main.py](final-project/src/main.py).
-- App orchestrator: [`app.MaScanApp`](final-project/src/app.py) — see [final-project/src/app.py](final-project/src/app.py).
+## 🌟 Features
 
-Quick start
-1. Install dependencies (see project metadata): [final-project/pyproject.toml](final-project/pyproject.toml)
-2. Run locally (development):
-   - Using uv: `uv run flet run` (see [final-project/README.md](final-project/README.md))
-   - Using poetry: `poetry run flet run`
-3. Entry point: [`main.main`](final-project/src/main.py) (launches the Flet app).
+### ✨ Core Functionality
+- **QR Code Scanning** - Fast and accurate attendance tracking via camera or manual input
+- **Time Slot Management** - Separate morning and afternoon attendance sessions
+- **Event Management** - Create and manage multiple events with ease
+- **User Authentication** - Secure login system with role-based access
+- **Activity Logging** - Track all login and scan activities for auditing
 
-Project layout (top-level)
-- Application metadata: [final-project/pyproject.toml](final-project/pyproject.toml)
-- App root: [final-project/src/main.py](final-project/src/main.py)
-- Main application class: [`app.MaScanApp`](final-project/src/app.py)
-- Views: [final-project/src/views/](final-project/src/views/)
-- Database manager: [`database.db_manager.Database`](final-project/src/database/db_manager.py)
-- Utilities: [`utils.qr_scanner.QRCameraScanner`](final-project/src/utils/qr_scanner.py)
-- Configuration & constants: [`config.constants`](final-project/src/config/constants.py)
+### 🎨 Premium UI/UX
+- **Modern Design** - Clean, intuitive interface with premium styling
+- **Responsive Layout** - Works seamlessly on different screen sizes
+- **Real-time Feedback** - Visual confirmations for all actions
+- **Dark Mode Support** - Eye-friendly interface options
+- **Smooth Animations** - Polished transitions and micro-interactions
 
-Core components and responsibilities
+### 📊 Management Features
+- **Student Database** - Comprehensive student information management
+- **Attendance Reports** - Generate detailed attendance summaries
+- **PDF Export** - Export attendance data for record-keeping
+- **QR Code Generation** - Bulk generate QR codes for students
+- **Analytics Dashboard** - View attendance statistics at a glance
 
-- Application shell
-  - [`app.MaScanApp`](final-project/src/app.py)
-    - Sets up Flet page, window, routing, and view instances.
-    - Manages the current logged-in user, drawer/menu, and the active `QRCameraScanner`.
-    - Key methods: route handling [`app.MaScanApp.route_change`](final-project/src/app.py), view pop handling [`app.MaScanApp.view_pop`](final-project/src/app.py), UI helpers like [`app.MaScanApp.create_app_bar`](final-project/src/app.py).
+---
 
-- Database manager
-  - [`database.db_manager.Database`](final-project/src/database/db_manager.py)
-    - Handles SQLite creation, schema migrations, and all DB operations.
-    - Key methods:
-      - Table creation & migration: [`database.db_manager.Database.create_tables`](final-project/src/database/db_manager.py)
-      - Event CRUD: [`database.db_manager.Database.create_event`](final-project/src/database/db_manager.py), [`database.db_manager.Database.delete_event`](final-project/src/database/db_manager.py), [`database.db_manager.Database.get_all_events`](final-project/src/database/db_manager.py), [`database.db_manager.Database.get_event_by_id`](final-project/src/database/db_manager.py)
-      - Attendance: [`database.db_manager.Database.record_attendance`](final-project/src/database/db_manager.py), [`database.db_manager.Database.get_attendance_by_event`](final-project/src/database/db_manager.py), [`database.db_manager.Database.is_user_checked_in`](final-project/src/database/db_manager.py)
-      - Users / auth: [`database.db_manager.Database.authenticate_user`](final-project/src/database/db_manager.py), [`database.db_manager.Database.create_user`](final-project/src/database/db_manager.py), [`database.db_manager.Database.get_user_role`](final-project/src/database/db_manager.py)
+## 🚀 Installation
 
-- Views (UI)
-  - Base helper: [`views.base_view.BaseView`](final-project/src/views/base_view.py) — common helpers for views.
-  - Authentication: [`views.login_view.LoginView`](final-project/src/views/login_view.py)
-  - Home / events list: [`views.home_view.HomeView`](final-project/src/views/home_view.py)
-  - Create event: [`views.create_event_view.CreateEventView`](final-project/src/views/create_event_view.py)
-  - Event detail & export: [`views.event_view.EventView`](final-project/src/views/event_view.py)
-  - QR scanning: [`views.scan_view.ScanView`](final-project/src/views/scan_view.py)
-  - QR generator: [`views.qr_generator_view.QRGeneratorView`](final-project/src/views/qr_generator_view.py)
-  - User management (admin): [`views.user_management_view.UserManagementView`](final-project/src/views/user_management_view.py)
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
+- Webcam (for QR scanning feature)
 
-- Utilities
-  - Camera scanner & QR detection: [`utils.qr_scanner.QRCameraScanner`](final-project/src/utils/qr_scanner.py)
+### Quick Start
 
-- Configuration
-  - UI and app constants: [`config.constants`](final-project/src/config/constants.py)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Fred727wysi/QR-Attendance-Checker.git
+   cd QR-Attendance-Checker
+   ```
 
-Data model & database access
-- The SQLite schema is created in [`database.db_manager.Database.create_tables`](final-project/src/database/db_manager.py).
-- Tables:
-  - events: (id TEXT PRIMARY KEY, name TEXT, date TEXT, description TEXT)
-  - attendance: (event_id, user_id, user_name, timestamp, status) — composite PK of (event_id, user_id)
-  - users: (username PRIMARY KEY, password, full_name, role, created_at)
-- Database helper: all SQL should use [`database.db_manager.Database._execute`](final-project/src/database/db_manager.py) to centralize error handling & connection management.
-- Admin account: default admin is ensured/created in [`database.db_manager.Database.create_tables`](final-project/src/database/db_manager.py) and `_ensure_admin_role` (called in constructor).
+2. **Create virtual environment**
+   ```bash
+   python -m venv .venv
+   ```
 
-Key runtime flows
+3. **Activate virtual environment**
+   - Windows:
+     ```bash
+     .venv\Scripts\activate
+     ```
+   - macOS/Linux:
+     ```bash
+     source .venv/bin/activate
+     ```
 
-1) App startup & routing
-- Startup entry: [`main.main`](final-project/src/main.py).
-- `MaScanApp` initializes and navigates to `/` which renders the login view by calling [`app.MaScanApp.route_change`](final-project/src/app.py) that invokes view builds.
-- Views are registered as singletons in `MaScanApp.__init__` (e.g., [`views.home_view.HomeView`](final-project/src/views/home_view.py)).
+4. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-2) Authentication (login)
-- UI: [`views.login_view.LoginView.build`](final-project/src/views/login_view.py).
-- On submit, it calls [`database.db_manager.Database.authenticate_user`](final-project/src/database/db_manager.py). If successful, sets `MaScanApp.current_user` and navigates to `/home` via [`app.MaScanApp.route_change`](final-project/src/app.py).
+5. **Run the application**
+   ```bash
+   python final-project/src/main.py
+   ```
 
-3) Event lifecycle
-- Create event: [`views.create_event_view.CreateEventView.build`](final-project/src/views/create_event_view.py) → uses [`database.db_manager.Database.create_event`](final-project/src/database/db_manager.py).
-- List events: [`views.home_view.HomeView.build`](final-project/src/views/home_view.py) → uses [`database.db_manager.Database.get_all_events`](final-project/src/database/db_manager.py).
-- View event details & attendance: [`views.event_view.EventView.build`](final-project/src/views/event_view.py) → uses [`database.db_manager.Database.get_event_by_id`](final-project/src/database/db_manager.py) and [`database.db_manager.Database.get_attendance_by_event`](final-project/src/database/db_manager.py).
-- Delete event: [`views.home_view.delete_event_handler`](final-project/src/views/home_view.py) calls [`database.db_manager.Database.delete_event`](final-project/src/database/db_manager.py).
+---
 
-4) Scanning & QR processing
-- Scan UI: [`views.scan_view.ScanView.build`](final-project/src/views/scan_view.py).
-- Camera scanning implementation: [`utils.qr_scanner.QRCameraScanner`](final-project/src/utils/qr_scanner.py)
-  - Starts/stops the camera thread via `start()` / `stop()`.
-  - Decodes QR codes using `pyzbar` and returns decoded payloads via `on_qr_detected` callback.
-- Scan flow: scan view receives QR payloads (format expected: `ID|Name` or `ID`) and calls:
-  - Check for duplicate: [`database.db_manager.Database.is_user_checked_in`](final-project/src/database/db_manager.py).
-  - Record attendance: [`database.db_manager.Database.record_attendance`](final-project/src/database/db_manager.py).
-- Manual entry: scan view provides text input and calls the same `process_scan`.
+## 📖 Usage
 
-5) QR generation & download
-- UI: [`views.qr_generator_view.QRGeneratorView.build`](final-project/src/views/qr_generator_view.py).
-- Loads CSV via Flet file picker; uses `qrcode` and PIL to generate PNGs, encodes base64 for preview and offers download (saves to `~/Downloads/QR_Codes`).
-- Download helper: `download_qr` (in the same view file) writes decoded base64 bytes to disk.
+### Default Login Credentials
+```
+Username: admin
+Password: admin123
+```
 
-6) User management (admin)
-- UI: [`views.user_management_view.UserManagementView.build`](final-project/src/views/user_management_view.py).
-- CRUD: `create_user_handler` uses [`database.db_manager.Database.create_user`](final-project/src/database/db_manager.py).
-- Listing: reads users through a raw SQL call via [`database.db_manager.Database._execute`](final-project/src/database/db_manager.py).
+⚠️ **Important:** Change the default credentials after first login!
 
-7) Export (PDF) flow
-- Export implemented in [`views.event_view.EventView.build`](final-project/src/views/event_view.py) via `reportlab`.
-- `export_data` builds a PDF saved to `~/Downloads/Attendance_Reports` with attendance table for the event.
+### Basic Workflow
 
-Extending the app — adding a new view (concise checklist)
-1. Create view class as subclass of [`views.base_view.BaseView`](final-project/src/views/base_view.py) under `final-project/src/views/`.
-   - Implement `build()` to return `ft.View`.
-2. Register the new view instance in [`app.MaScanApp.__init__`](final-project/src/app.py) (e.g., self.my_view = MyView(self)).
-3. Add route handling in [`app.MaScanApp.route_change`](final-project/src/app.py) to return the view when `page.route` matches the route.
-4. Optionally add navigation menu item in [`app.MaScanApp.create_drawer`](final-project/src/app.py).
+1. **Login** → Use your credentials to access the system
+2. **Create Event** → Set up an attendance event with date and details
+3. **Scan Attendance** → 
+   - Select time slot (Morning/Afternoon)
+   - Use camera to scan QR codes or enter IDs manually
+   - View real-time attendance updates
+4. **View Reports** → Check attendance summaries and export data
+5. **Activity Log** → Monitor all system activities (admin only)
 
-Developer notes & troubleshooting
-- Camera errors: ensure `opencv-python` and `pyzbar` are installed and system camera permissions are granted. Camera handling logic lives in [`utils.qr_scanner.QRCameraScanner`](final-project/src/utils/qr_scanner.py).
-- Database file: `DATABASE_NAME` constant at [`config.constants.DATABASE_NAME`](final-project/src/config/constants.py) defaults to `mascan_attendance.db`. Use SQLite tools for debugging.
-- Default credentials: see [`config.constants.DEFAULT_USERNAME`](final-project/src/config/constants.py) and [`config.constants.DEFAULT_PASSWORD`](final-project/src/config/constants.py). Database initialization ensures an admin user exists at startup in [`database.db_manager.Database.create_tables`](final-project/src/database/db_manager.py).
-- Snacbkars and page updates are centralized via [`app.MaScanApp.show_snackbar`](final-project/src/app.py) and [`views.base_view.BaseView.show_snackbar`](final-project/src/views/base_view.py).
-- If modifying views, avoid calling `page.go()` recursively inside route handling — `app.MaScanApp.route_change` contains protective patterns and fallback error view.
+---
 
-References (files & symbols)
-- App entry & main
-  - File: [final-project/src/main.py](final-project/src/main.py)
-  - Symbol: [`main.main`](final-project/src/main.py)
-- App orchestrator
-  - File: [final-project/src/app.py](final-project/src/app.py)
-  - Symbol: [`app.MaScanApp`](final-project/src/app.py)
-- Database
-  - File: [final-project/src/database/db_manager.py](final-project/src/database/db_manager.py)
-  - Symbol: [`database.db_manager.Database`](final-project/src/database/db_manager.py)
-  - Key methods:
-    - [`database.db_manager.Database.create_tables`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.create_event`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.delete_event`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.record_attendance`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.get_attendance_by_event`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.is_user_checked_in`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.authenticate_user`](final-project/src/database/db_manager.py)
-    - [`database.db_manager.Database.create_user`](final-project/src/database/db_manager.py)
-- Views
-  - [final-project/src/views/base_view.py](final-project/src/views/base_view.py) — [`views.base_view.BaseView`](final-project/src/views/base_view.py)
-  - [final-project/src/views/login_view.py](final-project/src/views/login_view.py) — [`views.login_view.LoginView`](final-project/src/views/login_view.py)
-  - [final-project/src/views/home_view.py](final-project/src/views/home_view.py) — [`views.home_view.HomeView`](final-project/src/views/home_view.py)
-  - [final-project/src/views/create_event_view.py](final-project/src/views/create_event_view.py) — [`views.create_event_view.CreateEventView`](final-project/src/views/create_event_view.py)
-  - [final-project/src/views/event_view.py](final-project/src/views/event_view.py) — [`views.event_view.EventView`](final-project/src/views/event_view.py)
-  - [final-project/src/views/scan_view.py](final-project/src/views/scan_view.py) — [`views.scan_view.ScanView`](final-project/src/views/scan_view.py)
-  - [final-project/src/views/qr_generator_view.py](final-project/src/views/qr_generator_view.py) — [`views.qr_generator_view.QRGeneratorView`](final-project/src/views/qr_generator_view.py)
-  - [final-project/src/views/user_management_view.py](final-project/src/views/user_management_view.py) — [`views.user_management_view.UserManagementView`](final-project/src/views/user_management_view.py)
-- Utilities
-  - [final-project/src/utils/qr_scanner.py](final-project/src/utils/qr_scanner.py) — [`utils.qr_scanner.QRCameraScanner`](final-project/src/utils/qr_scanner.py)
-- Config & constants
-  - [final-project/src/config/constants.py](final-project/src/config/constants.py) — [`config.constants`](final-project/src/config/constants.py)
-- Project docs
-  - [final-project/README.md](final-project/README.md)
-  - [final-project/pyproject.toml](final-project/pyproject.toml)
+## 🏗️ Project Structure
 
-If you want, I can:
-- Generate inline documentation comments for targeted modules (e.g., expand SQL docstrings in [`database.db_manager.Database`](final-project/src/database/db_manager.py)).
-- Produce a concise developer quickstart checklist (scripts, test runners).
-- Create unit test scaffolding for the DB layer and core view logic.
+```
+QR-Attendance-Checker/
+│
+├── final-project/
+│   └── src/
+│       ├── assets/              # Images and logos
+│       ├── config/              # Configuration files
+│       │   ├── __init__.py
+│       │   └── constants.py     # App constants
+│       │
+│       ├── database/            # Database management
+│       │   ├── __init__.py
+│       │   └── db_manager.py    # Database operations
+│       │
+│       ├── utils/               # Utility functions
+│       │   ├── __init__.py
+│       │   ├── image_utils.py   # Image processing
+│       │   ├── logger.py        # Logging utilities
+│       │   ├── pdf_export.py    # PDF generation
+│       │   └── qr_scanner.py    # QR code scanning
+│       │
+│       ├── views/               # UI views
+│       │   ├── __init__.py
+│       │   ├── activity_log_view.py
+│       │   ├── base_view.py
+│       │   ├── create_event_view.py
+│       │   ├── event_view.py
+│       │   ├── home_view.py
+│       │   ├── login_view.py
+│       │   ├── scan_view.py
+│       │   ├── qr_generator_view.py
+│       │   └── user_management_view.py
+│       │
+│       ├── __init__.py
+│       ├── app.py               # Main application logic
+│       └── main.py              # Entry point
+│
+├── mascan_attendance.db         # SQLite database
+├── requirements.txt             # Python dependencies
+├── README.md                    # This file
+└── .gitignore                   # Git ignore rules
+```
+
+---
+
+## 💾 Database Schema
+
+### Tables
+
+#### `users`
+- User authentication and management
+- Fields: `id`, `username`, `password`, `full_name`, `role`
+
+#### `students_qrcodes`
+- Student information and QR codes
+- Fields: `id`, `school_id`, `name`, `qr_code`
+
+#### `events`
+- Event details and scheduling
+- Fields: `id`, `name`, `date`, `location`, `description`
+
+#### `attendance_timeslots`
+- Time-based attendance records
+- Fields: `id`, `event_id`, `user_id`, `user_name`, `timestamp`, `time_slot`
+
+#### `login_history`
+- User login tracking
+- Fields: `id`, `username`, `login_time`, `logout_time`
+
+#### `scan_history`
+- QR scan activity log
+- Fields: `id`, `scanner_username`, `scanned_user_id`, `scanned_user_name`, `event_id`, `scan_time`
+
+---
+
+## 🎨 Screenshots
+
+### Login Screen
+Clean and modern authentication interface with premium styling.
+
+### Home Dashboard
+Quick access to all major features with statistics overview.
+
+### Scan View
+Real-time camera preview with visual feedback for successful scans.
+
+### Activity Log
+Comprehensive tracking of all system activities with filtering options.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [Flet](https://flet.dev/) - Modern Python UI framework
+- **Database:** SQLite - Lightweight embedded database
+- **QR Processing:** OpenCV & pyzbar - Computer vision and barcode decoding
+- **PDF Generation:** ReportLab - Professional PDF creation
+- **Image Processing:** Pillow - Python Imaging Library
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+### Getting Started
+
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes**
+4. **Commit with clear messages**
+   ```bash
+   git commit -m "Add: Amazing new feature"
+   ```
+5. **Push to your branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+6. **Open a Pull Request**
+
+### Commit Message Guidelines
+
+- `Add:` New feature or functionality
+- `Fix:` Bug fix
+- `Update:` Modify existing feature
+- `Refactor:` Code restructuring
+- `Docs:` Documentation changes
+- `Style:` UI/UX improvements
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👥 Team
+
+**Lead Developer:** Fred727wysi  
+**Contributors:** [View Contributors](https://github.com/Fred727wysi/QR-Attendance-Checker/graphs/contributors)
+
+---
+
+## 🐛 Bug Reports & Feature Requests
+
+Found a bug or have a feature idea? 
+
+- **Bug Report:** [Open an Issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues/new?labels=bug)
+- **Feature Request:** [Open an Issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues/new?labels=enhancement)
+
+---
+
+## 📞 Support
+
+Need help? 
+
+- 📧 Email: [Your Email]
+- 💬 Discord: [Your Discord Server]
+- 📖 Documentation: [Wiki](https://github.com/Fred727wysi/QR-Attendance-Checker/wiki)
+
+---
+
+## 🎯 Roadmap
+
+### Version 2.0 (Planned)
+- [ ] Mobile app version
+- [ ] Cloud database support
+- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+- [ ] Email notifications
+- [ ] Bulk import/export features
+- [ ] API for third-party integrations
+
+### Version 1.1 (In Progress)
+- [x] Activity logging system
+- [x] Time slot management
+- [x] Enhanced UI/UX
+- [ ] Report customization
+- [ ] Backup/restore functionality
+
+---
+
+## 🌐 System Requirements
+
+### Minimum
+- **OS:** Windows 10, macOS 10.14, or Linux
+- **RAM:** 4GB
+- **Storage:** 100MB free space
+- **Python:** 3.8+
+
+### Recommended
+- **OS:** Windows 11, macOS 12+, or Ubuntu 20.04+
+- **RAM:** 8GB
+- **Storage:** 500MB free space
+- **Python:** 3.10+
+- **Camera:** 720p or higher for QR scanning
+
+---
+
+## ⚡ Performance Tips
+
+- Use a good quality webcam for faster QR code detection
+- Keep the database file backed up regularly
+- Clear old attendance records periodically to maintain performance
+- Use SSD storage for faster database operations
+
+---
+
+## 🔒 Security
+
+- Always change default credentials
+- Keep the application updated
+- Regularly backup your database
+- Use strong passwords for user accounts
+- Limit admin access to trusted users only
+
+---
+
+## 📚 Additional Resources
+
+- [Flet Documentation](https://flet.dev/docs/)
+- [Python SQLite Tutorial](https://docs.python.org/3/library/sqlite3.html)
+- [QR Code Standards](https://www.qrcode.com/en/about/)
+- [Project Wiki](https://github.com/Fred727wysi/QR-Attendance-Checker/wiki)
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if you find it helpful! ⭐**
+
+Made with ❤️ by the MaScan Team
+
+[Report Bug](https://github.com/Fred727wysi/QR-Attendance-Checker/issues) • [Request Feature](https://github.com/Fred727wysi/QR-Attendance-Checker/issues) • [View Documentation](https://github.com/Fred727wysi/QR-Attendance-Checker/wiki)
+
+</div>
