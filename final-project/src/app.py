@@ -163,28 +163,39 @@ class MaScanApp:
             traceback.print_exc()
 
     def create_app_bar(self, title: str, show_back: bool = False):
-        """Create standardized app bar."""
+        """Create standardized app bar with modern design."""
         def open_drawer(e):
             self.open_end_drawer()
         
         return ft.AppBar(
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK,
-                on_click=lambda e: self.page.go("/home")
+                icon_color=ft.Colors.WHITE,
+                on_click=lambda e: self.page.go("/home"),
+                tooltip="Back to Home"
             ) if show_back else None,
-            title=ft.Text(title, size=20, weight=ft.FontWeight.BOLD),
+            title=ft.Row(
+                [
+                    ft.Icon(ft.Icons.QR_CODE_SCANNER, color=ft.Colors.WHITE, size=24),
+                    ft.Text(title, size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                ],
+                spacing=8,
+            ),
             actions=[
                 ft.IconButton(
                     icon=ft.Icons.MENU,
-                    on_click=open_drawer
+                    icon_color=ft.Colors.WHITE,
+                    on_click=open_drawer,
+                    tooltip="Menu"
                 )
             ] if self.current_user else [],
             bgcolor=PRIMARY_COLOR,
-            color=ft.Colors.WHITE,
+            center_title=False,
+            toolbar_height=64,
         )
 
     def create_drawer(self):
-        """Create navigation drawer using BottomSheet."""
+        """Create modern navigation drawer with enhanced styling."""
         # Build menu items dynamically based on user role
         def on_home_click(e):
             self.navigate_home()
@@ -198,52 +209,92 @@ class MaScanApp:
         def on_logout_click(e):
             self.logout_handler()
         
+        # User info header
+        user_role = self.db.get_user_role(self.current_user) if self.current_user else None
+        role_badge_color = ft.Colors.AMBER_600 if user_role == 'admin' else ft.Colors.BLUE_600
+        
         menu_items = [
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.PERSON, color=PRIMARY_COLOR),
-                title=ft.Text(
-                    f"Welcome, {self.current_user or 'User'}!",
-                    weight=ft.FontWeight.BOLD,
-                    size=16
+            # User Profile Section
+            ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Container(
+                            content=ft.Icon(
+                                ft.Icons.ACCOUNT_CIRCLE,
+                                size=60,
+                                color=PRIMARY_COLOR
+                            ),
+                            alignment=ft.alignment.center,
+                        ),
+                        ft.Text(
+                            self.current_user or 'User',
+                            weight=ft.FontWeight.BOLD,
+                            size=18,
+                            color=ft.Colors.GREY_900,
+                            text_align=ft.TextAlign.CENTER,
+                        ),
+                        ft.Container(
+                            content=ft.Text(
+                                user_role.upper() if user_role else 'USER',
+                                size=11,
+                                weight=ft.FontWeight.W_600,
+                                color=ft.Colors.WHITE,
+                            ),
+                            bgcolor=role_badge_color,
+                            padding=ft.padding.symmetric(horizontal=12, vertical=4),
+                            border_radius=12,
+                            alignment=ft.alignment.center,
+                        ),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=8,
                 ),
+                padding=ft.padding.only(top=20, bottom=16, left=16, right=16),
+                bgcolor=ft.Colors.BLUE_50,
+                border_radius=ft.border_radius.only(top_left=16, top_right=16),
             ),
-            ft.Divider(height=1),
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.HOME),
-                title=ft.Text("Home"),
-                on_click=on_home_click
+            
+            ft.Container(height=12),
+            
+            # Navigation Items
+            self._create_nav_item(
+                icon=ft.Icons.HOME_ROUNDED,
+                title="Home",
+                on_click=on_home_click,
             ),
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.QR_CODE),
-                title=ft.Text("Generate QR Codes"),
-                on_click=on_qr_click
+            self._create_nav_item(
+                icon=ft.Icons.QR_CODE_2,
+                title="Generate QR Codes",
+                on_click=on_qr_click,
             ),
         ]
         
         # Add user management only for admin users
-        user_role = self.db.get_user_role(self.current_user) if self.current_user else None
         print(f"DEBUG: current_user={self.current_user}, user_role={user_role}")
         
         if user_role == 'admin':
             print("DEBUG: Adding Manage Users menu item")
             menu_items.append(
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.ADMIN_PANEL_SETTINGS),
-                    title=ft.Text("Manage Users"),
-                    on_click=on_user_mgmt_click
+                self._create_nav_item(
+                    icon=ft.Icons.ADMIN_PANEL_SETTINGS,
+                    title="Manage Users",
+                    on_click=on_user_mgmt_click,
+                    is_admin=True,
                 )
             )
-        else:
-            print(f"DEBUG: NOT adding Manage Users (user_role={user_role})")
         
-        # Add logout at the end
-        menu_items.append(
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.LOGOUT, color=ft.Colors.RED),
-                title=ft.Text("Logout", color=ft.Colors.RED),
-                on_click=on_logout_click
-            )
-        )
+        # Divider and logout
+        menu_items.extend([
+            ft.Container(height=8),
+            ft.Divider(height=1, color=ft.Colors.GREY_300),
+            ft.Container(height=8),
+            self._create_nav_item(
+                icon=ft.Icons.LOGOUT,
+                title="Logout",
+                on_click=on_logout_click,
+                is_logout=True,
+            ),
+        ])
         
         return ft.BottomSheet(
             content=ft.Container(
@@ -251,10 +302,44 @@ class MaScanApp:
                     menu_items,
                     tight=False,
                     scroll=ft.ScrollMode.AUTO,
+                    spacing=0,
                 ),
-                padding=20,
+                padding=ft.padding.only(bottom=20, left=12, right=12),
+                bgcolor=ft.Colors.WHITE,
+                border_radius=ft.border_radius.only(top_left=16, top_right=16),
             ),
             open=False,
+        )
+
+    def _create_nav_item(self, icon, title, on_click, is_admin=False, is_logout=False):
+        """Helper to create consistent navigation items."""
+        if is_logout:
+            icon_color = ft.Colors.RED_400
+            text_color = ft.Colors.RED_600
+            hover_color = ft.Colors.RED_50
+        elif is_admin:
+            icon_color = ft.Colors.AMBER_600
+            text_color = ft.Colors.GREY_800
+            hover_color = ft.Colors.AMBER_50
+        else:
+            icon_color = PRIMARY_COLOR
+            text_color = ft.Colors.GREY_800
+            hover_color = ft.Colors.BLUE_50
+        
+        return ft.Container(
+            content=ft.ListTile(
+                leading=ft.Icon(icon, color=icon_color, size=24),
+                title=ft.Text(
+                    title,
+                    size=15,
+                    weight=ft.FontWeight.W_500,
+                    color=text_color,
+                ),
+                on_click=on_click,
+                hover_color=hover_color,
+            ),
+            padding=ft.padding.symmetric(horizontal=4),
+            border_radius=12,
         )
 
     def open_end_drawer(self):
