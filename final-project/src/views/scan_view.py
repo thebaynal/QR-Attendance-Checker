@@ -172,7 +172,7 @@ class ScanView(BaseView):
                 self.show_snackbar(f"⚠️ {user_name} already checked in at {existing}", ft.Colors.ORANGE_600)
                 return
             
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = datetime.now().strftime("%I:%M:%S %p")
             self.db.record_attendance(event_id, school_id, user_name, timestamp)
             
             # Add to log with premium styling
