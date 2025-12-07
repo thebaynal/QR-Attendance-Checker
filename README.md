@@ -44,10 +44,20 @@ Overview
 
 Quick start
 1. Install dependencies (see project metadata): [final-project/pyproject.toml](final-project/pyproject.toml)
-2. Run locally (development):
+2. Initialize database:
+   ```bash
+   cd final-project/src
+   python init_db.py
+   ```
+3. Run locally (development):
    - Using uv: `uv run flet run` (see [final-project/README.md](final-project/README.md))
    - Using poetry: `poetry run flet run`
-3. Entry point: [`main.main`](final-project/src/main.py) (launches the Flet app).
+4. Entry point: [`main.main`](final-project/src/main.py) (launches the Flet app).
+
+**Default Admin Credentials:**
+- Username: `admin`
+- Password: `Admin@123`
+- ⚠️ **IMPORTANT**: Change the admin password after first login!
 
 Project layout (top-level)
 - Application metadata: [final-project/pyproject.toml](final-project/pyproject.toml)
