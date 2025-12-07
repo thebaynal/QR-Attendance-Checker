@@ -439,22 +439,27 @@ class Database:
         SELECT 
             s.school_id,
             s.name,
+            
+            COALESCE(json_extract(s.csv_data, '$.Course'), 'N/A') AS course,
             COALESCE(json_extract(s.csv_data, '$.Year'), 'N/A') AS year_level,
             COALESCE(json_extract(s.csv_data, '$.Section'), 'N/A') AS section,
+
             COALESCE(a.morning_time, '') AS morning_time,
             COALESCE(a.morning_status, 'Absent') AS morning_status,
             COALESCE(a.lunch_time, '') AS lunch_time,
             COALESCE(a.lunch_status, 'Absent') AS lunch_status,
             COALESCE(a.afternoon_time, '') AS afternoon_time,
             COALESCE(a.afternoon_status, 'Absent') AS afternoon_status
+
         FROM students_qrcodes s
         LEFT JOIN attendance_timeslots a 
             ON s.school_id = a.user_id AND a.event_id = ?
+
         ORDER BY 
+            json_extract(s.csv_data, '$.Course'),
             json_extract(s.csv_data, '$.Year'),
             json_extract(s.csv_data, '$.Section'),
             s.name;
-
         """
         
         results = self._execute(query, (event_id,), fetch_all=True)
@@ -466,9 +471,9 @@ class Database:
         # Group by section
         grouped_data = {}
         for row in results:
-            school_id, name, year, section, m_time, m_status, l_time, l_status, a_time, a_status = row
-            
-            section_key = f"{year or 'N/A'} - {section or 'N/A'}"
+            school_id, name, course, year, section, m_time, m_status, l_time, l_status, a_time, a_status = row
+    
+            section_key = f"{course or 'N/A'} - {year}{section or 'N/A'}"
             
             if section_key not in grouped_data:
                 grouped_data[section_key] = []
