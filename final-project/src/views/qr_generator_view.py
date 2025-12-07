@@ -119,7 +119,7 @@ class QRGeneratorView(BaseView):
                             "row_data": row
                         })
                         
-                        # Create modern QR card
+                        # Create modern QR card - YOUR premium styling
                         qr_card = self.create_modern_card(
                             content=ft.Column(
                                 [
@@ -137,7 +137,6 @@ class QRGeneratorView(BaseView):
                                         ],
                                         spacing=12,
                                     ),
-<<<<<<< HEAD
                                     ft.Container(
                                         content=ft.Image(
                                             src_base64=img_base64,
@@ -175,29 +174,6 @@ class QRGeneratorView(BaseView):
                         )
                         qr_output.controls.append(qr_card)
                         valid_count += 1
-=======
-                                    padding=15,
-                                    bgcolor=BLUE_50,
-                                    border_radius=10
-                                )
-                            )
-                            qr_output.controls.append(qr_card)
-                            valid_count += 1
-                        
-                        # Show results summary
-                        if valid_count > 0:
-                            status_text.value = f"Generated {valid_count} QR code(s)"
-                            status_text.color = ft.Colors.GREEN
-                        else:
-                            status_text.value = "No data found in CSV"
-                            status_text.color = ft.Colors.RED
-                        
-                        qr_output.update()
-                        
-                    except Exception as ex:
-                        status_text.value = f"Error: {str(ex)}"
-                        status_text.color = ft.Colors.RED
->>>>>>> upstream/main
                     
                     if valid_count > 0:
                         status_container.content.value = f"✅ Generated {valid_count} QR code(s)"
@@ -358,7 +334,7 @@ class QRGeneratorView(BaseView):
             self.page.overlay.append(folder_picker)
             file_picker.on_result = handle_file_pick
             
-            # Main content
+            # Main content with YOUR premium styling
             content_card = self.create_modern_card(
                 content=ft.Column(
                     [

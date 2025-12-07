@@ -269,33 +269,26 @@ class MaScanApp:
             
             ft.Container(height=12),
             
-            # Navigation Items
+            # Navigation Items - Home (always visible)
             self._create_nav_item(
                 icon=ft.Icons.HOME_ROUNDED,
                 title="Home",
                 on_click=on_home_click,
             ),
-<<<<<<< HEAD
-            self._create_nav_item(
-                icon=ft.Icons.QR_CODE_2,
-                title="Generate QR Codes",
-                on_click=on_qr_click,
-            ),
-        ]
-        
-        # Add admin-only menu items
-=======
         ]
         
         # Add admin-only options
-        user_role = self.db.get_user_role(self.current_user) if self.current_user else None
->>>>>>> upstream/main
         print(f"DEBUG: current_user={self.current_user}, user_role={user_role}")
         
         if user_role == 'admin':
             print("DEBUG: Adding admin menu items")
             menu_items.extend([
-<<<<<<< HEAD
+                self._create_nav_item(
+                    icon=ft.Icons.QR_CODE_2,
+                    title="Generate QR Codes",
+                    on_click=on_qr_click,
+                    is_admin=True,
+                ),
                 self._create_nav_item(
                     icon=ft.Icons.ADMIN_PANEL_SETTINGS,
                     title="Manage Users",
@@ -309,26 +302,8 @@ class MaScanApp:
                     is_admin=True,
                 ),
             ])
-=======
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.QR_CODE),
-                    title=ft.Text("Generate QR Codes"),
-                    on_click=on_qr_click
-                ),
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.ADMIN_PANEL_SETTINGS),
-                    title=ft.Text("Manage Users"),
-                    on_click=on_user_mgmt_click
-                ),
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.HISTORY),
-                    title=ft.Text("Activity Log"),
-                    on_click=on_activity_log_click
-                )
-            ])
         else:
             print(f"DEBUG: NOT adding admin menu items (user_role={user_role})")
->>>>>>> upstream/main
         
         # Divider and logout
         menu_items.extend([

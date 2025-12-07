@@ -4,11 +4,7 @@
 import flet as ft
 from views.base_view import BaseView
 from config.constants import PRIMARY_COLOR
-<<<<<<< HEAD
-from datetime import datetime
-=======
 from datetime import datetime, timedelta
->>>>>>> upstream/main
 
 
 class CreateEventView(BaseView):
@@ -19,16 +15,15 @@ class CreateEventView(BaseView):
         # Store selected date
         selected_date = [None]
         
-        # Form fields using modern styling - adjusted for 414px window
+        # Form fields using modern styling - YOUR premium design
         name_field = self.create_modern_text_field(
             label="Event Name",
             hint_text="",
             prefix_icon=ft.Icons.EVENT_NOTE,
             width=330,
         )
-<<<<<<< HEAD
         
-        # Date display field (read-only) - clickable to open picker
+        # Date display field (read-only) - clickable to open picker - YOUR design
         date_display = ft.TextField(
             label="Event Date",
             hint_text="Select Date",
@@ -45,13 +40,6 @@ class CreateEventView(BaseView):
             focused_bgcolor=ft.Colors.WHITE,
             content_padding=ft.padding.symmetric(horizontal=16, vertical=16),
             text_size=15,
-=======
-        date_field = ft.TextField(
-            label="Date",
-            hint_text="Click to select date",
-            prefix_icon=ft.Icons.CALENDAR_TODAY,
-            read_only=True
->>>>>>> upstream/main
         )
         
         desc_field = self.create_modern_text_field(
@@ -59,11 +47,9 @@ class CreateEventView(BaseView):
             hint_text="Add event details or notes...",
             multiline=True,
             width=330,
-            
         )
         
-<<<<<<< HEAD
-        # Status message
+        # Status message - YOUR styling
         status_text = ft.Text(
             "",
             size=13,
@@ -71,43 +57,11 @@ class CreateEventView(BaseView):
             visible=False,
         )
         
-        def handle_date_change(e):
-            """Handle date selection from date picker."""
-            if e.control.value:
-                selected_date[0] = e.control.value
-                # Format date as "Month Day, Year" (e.g., "December 15, 2024")
-                formatted_date = e.control.value.strftime("%B %d, %Y")
-                date_display.value = formatted_date
-                date_display.update()
-        
-        def handle_date_dismiss(e):
-            """Handle date picker dismissal."""
-            pass
-        
-        # Date picker
-        date_picker = ft.DatePicker(
-            on_change=handle_date_change,
-            on_dismiss=handle_date_dismiss,
-            first_date=datetime(2020, 1, 1),
-            last_date=datetime(2030, 12, 31),
-        )
-        
-        def open_date_picker(e):
-            """Open the date picker dialog."""
-            # Add date picker to page overlay if not already there
-            if date_picker not in self.page.overlay:
-                self.page.overlay.append(date_picker)
-                self.page.update()
-            date_picker.open = True
-            date_picker.update()
-        
-        # Make date field clickable
-        date_display.on_click = open_date_picker
-=======
+        # THEIR calendar picker logic (new feature from upstream)
         def open_calendar(e):
             """Open a mini calendar picker dialog."""
             current_month = [datetime.now()]
-            selected_date = [None]  # Track selected date
+            selected_date_state = [None]  # Track selected date
             
             month_year_text = ft.Text(
                 current_month[0].strftime("%B %Y"),
@@ -144,9 +98,9 @@ class CreateEventView(BaseView):
             
             def update_confirm_button():
                 """Enable/disable confirm button based on selection."""
-                if selected_date[0]:
+                if selected_date_state[0]:
                     confirm_button.disabled = False
-                    selected_date_text.value = f"Selected: {selected_date[0].strftime('%b %d, %Y')}"
+                    selected_date_text.value = f"Selected: {selected_date_state[0].strftime('%b %d, %Y')}"
                 else:
                     confirm_button.disabled = True
                     selected_date_text.value = "No date selected"
@@ -196,12 +150,13 @@ class CreateEventView(BaseView):
                 for day in range(1, last_day.day + 1):
                     day_date = month_date.replace(day=day)
                     is_today = day_date.date() == datetime.now().date()
-                    is_selected = selected_date[0] and day_date.date() == selected_date[0].date()
+                    is_selected = selected_date_state[0] and day_date.date() == selected_date_state[0].date()
                     
                     # Use default parameter to capture the value
                     def create_day_button(current_day_date):
                         def on_day_click(e):
-                            selected_date[0] = current_day_date
+                            selected_date_state[0] = current_day_date
+                            selected_date[0] = current_day_date  # Update outer scope
                             update_confirm_button()
                             build_calendar(current_month[0])
                             try:
@@ -267,10 +222,12 @@ class CreateEventView(BaseView):
             
             def on_confirm(e):
                 """Handle confirmation of selected date."""
-                if selected_date[0]:
-                    date_field.value = selected_date[0].strftime("%b %d, %Y")
+                if selected_date_state[0]:
+                    # Format date as "Month Day, Year" (e.g., "December 15, 2024")
+                    formatted_date = selected_date_state[0].strftime("%B %d, %Y")
+                    date_display.value = formatted_date
                     try:
-                        date_field.update()
+                        date_display.update()
                     except:
                         pass
                 self.page.close(dialog)
@@ -341,8 +298,7 @@ class CreateEventView(BaseView):
             self.page.open(dialog)
         
         # Attach click handler to date field
-        date_field.on_click = open_calendar
->>>>>>> upstream/main
+        date_display.on_click = open_calendar
         
         def save_event(e):
             """Save the new event to database."""
@@ -381,7 +337,7 @@ class CreateEventView(BaseView):
                 status_text.visible = True
                 status_text.update()
         
-        # Modern form card with fixed width
+        # Modern form card with fixed width - YOUR premium design
         form_card = ft.Container(
             content=self.create_modern_card(
                 content=ft.Column(

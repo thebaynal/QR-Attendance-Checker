@@ -18,7 +18,7 @@ class UserManagementView(BaseView):
             # User list
             users_list = ft.ListView(spacing=12, padding=12, expand=True)
             
-            # Form fields
+            # Form fields - YOUR premium design
             username_field = self.create_modern_text_field(
                 label="Username",
                 hint_text="Enter Username",
@@ -79,48 +79,7 @@ class UserManagementView(BaseView):
                             badge_color = ft.Colors.GREEN_600 if is_admin else ft.Colors.BLUE_600
                             role_label = "Admin" if is_admin else "Scanner"
                             
-<<<<<<< HEAD
-                            user_card = self.create_modern_card(
-                                content=ft.Row(
-                                    [
-                                        ft.Container(
-                                            content=ft.Icon(
-                                                ft.Icons.ADMIN_PANEL_SETTINGS if is_admin else ft.Icons.QR_CODE_SCANNER,
-                                                color=ft.Colors.WHITE,
-                                                size=24,
-                                            ),
-                                            width=48,
-                                            height=48,
-                                            bgcolor=badge_color,
-                                            border_radius=12,
-                                            alignment=ft.alignment.center,
-                                        ),
-                                        ft.Column(
-                                            [
-                                                ft.Text(
-                                                    full_name,
-                                                    weight=ft.FontWeight.W_600,
-                                                    size=15,
-                                                ),
-                                                ft.Text(
-                                                    f"@{username}",
-                                                    size=13,
-                                                    color=ft.Colors.GREY_600,
-                                                ),
-                                            ],
-                                            spacing=2,
-                                            expand=True,
-                                        ),
-                                        self.create_info_badge(role_label, badge_color),
-                                    ],
-                                    spacing=16,
-                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                ),
-                                padding=16,
-=======
-                            # Create delete handler with proper closure
-                           # views/user_management_view.py (Replace the make_delete_handler function)
-
+                            # THEIR delete handler logic with proper closure
                             def make_delete_handler(user_username, user_fullname):
                                 def delete_user_click(e):
                                     print(f"DEBUG: Delete clicked for {user_username}")
@@ -218,51 +177,55 @@ class UserManagementView(BaseView):
                                 
                                 return delete_user_click
                             
-                            user_tile = ft.Container(
+                            # YOUR premium user card design
+                            user_card = self.create_modern_card(
                                 content=ft.Row(
                                     [
+                                        ft.Container(
+                                            content=ft.Icon(
+                                                ft.Icons.ADMIN_PANEL_SETTINGS if is_admin else ft.Icons.QR_CODE_SCANNER,
+                                                color=ft.Colors.WHITE,
+                                                size=24,
+                                            ),
+                                            width=48,
+                                            height=48,
+                                            bgcolor=badge_color,
+                                            border_radius=12,
+                                            alignment=ft.alignment.center,
+                                        ),
                                         ft.Column(
                                             [
                                                 ft.Text(
-                                                    f"{full_name} (@{username})",
-                                                    weight=ft.FontWeight.BOLD,
-                                                    size=14
+                                                    full_name,
+                                                    weight=ft.FontWeight.W_600,
+                                                    size=15,
                                                 ),
                                                 ft.Text(
-                                                    f"Role: {role_label}",
-                                                    size=12,
-                                                    color=ft.Colors.GREY_600
+                                                    f"@{username}",
+                                                    size=13,
+                                                    color=ft.Colors.GREY_600,
                                                 ),
                                             ],
-                                            expand=True
+                                            spacing=2,
+                                            expand=True,
                                         ),
-                                        ft.Container(
-                                            content=ft.Text(
-                                                role_label,
-                                                color=ft.Colors.WHITE,
-                                                size=10,
-                                                weight=ft.FontWeight.BOLD
-                                            ),
-                                            bgcolor=role_badge_color,
-                                            padding=8,
-                                            border_radius=5
-                                        ),
+                                        self.create_info_badge(role_label, badge_color),
                                         ft.IconButton(
-                                            icon=ft.Icons.DELETE,
-                                            icon_color=ft.Colors.RED,
-                                            on_click=make_delete_handler(username, full_name)
-                                        )
+                                            icon=ft.Icons.DELETE_OUTLINE,
+                                            icon_color=ft.Colors.RED_400,
+                                            icon_size=20,
+                                            tooltip="Delete User",
+                                            on_click=make_delete_handler(username, full_name),
+                                            style=ft.ButtonStyle(
+                                                bgcolor=ft.Colors.RED_50,
+                                                shape=ft.RoundedRectangleBorder(radius=8),
+                                            ),
+                                        ),
                                     ],
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    spacing=16,
                                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                    spacing=10
                                 ),
-                                padding=10,
-                                border=ft.border.all(1, ft.Colors.GREY_300),
-                                border_radius=8,
-                                bgcolor=ft.Colors.WHITE,
-                                margin=5
->>>>>>> upstream/main
+                                padding=16,
                             )
                             users_list.controls.append(user_card)
                     else:
@@ -318,16 +281,10 @@ class UserManagementView(BaseView):
                     result = self.db.create_user(username, password, full_name, role)
                     
                     if result:
-<<<<<<< HEAD
                         status_container.content.value = f"✅ User '{full_name}' created successfully!"
                         status_container.content.color = ft.Colors.GREEN_700
                         status_container.bgcolor = ft.Colors.GREEN_50
                         status_container.border = ft.border.all(1, ft.Colors.GREEN_200)
-=======
-                        self.show_snackbar(f"✓ User '{full_name}' added successfully!", ft.Colors.GREEN)
-                        status_text.value = f"User '{full_name}' created successfully!"
-                        status_text.color = ft.Colors.GREEN
->>>>>>> upstream/main
                         
                         # Clear fields
                         username_field.value = ""
@@ -340,7 +297,6 @@ class UserManagementView(BaseView):
                         password_field.update()
                         full_name_field.update()
                         role_dropdown.update()
-                        status_text.update()
                         
                         # Reload list - safely handle ListView update
                         try:
@@ -348,7 +304,6 @@ class UserManagementView(BaseView):
                         except Exception as load_ex:
                             print(f"DEBUG: Could not update users_list on page, will update next load: {load_ex}")
                     else:
-<<<<<<< HEAD
                         status_container.content.value = f"❌ User '{username}' already exists"
                         status_container.content.color = ft.Colors.RED_700
                         status_container.bgcolor = ft.Colors.RED_50
@@ -356,16 +311,6 @@ class UserManagementView(BaseView):
                     
                     status_container.visible = True
                     status_container.update()
-                    username_field.update()
-                    password_field.update()
-                    full_name_field.update()
-=======
-                        status_text.value = f"User '{username}' already exists"
-                        status_text.color = ft.Colors.RED
-                        print(f"DEBUG: User creation failed - user '{username}' may already exist")
-                        status_text.update()
->>>>>>> upstream/main
-                    role_dropdown.update()
                     
                 except Exception as e:
                     print(f"ERROR in create_user_handler: {e}")
@@ -381,8 +326,7 @@ class UserManagementView(BaseView):
             # Load users initially
             load_users()
             
-<<<<<<< HEAD
-            # Build form card
+            # Build form card - YOUR premium design
             form_card = self.create_modern_card(
                 content=ft.Column(
                     [
@@ -417,89 +361,9 @@ class UserManagementView(BaseView):
                     spacing=16,
                 ),
                 padding=28,
-=======
-            print("DEBUG: Building UI components")
-            view = ft.View(
-                "/user_management",
-                [
-                    self.create_app_bar("User Management", show_back=True),
-                    ft.Column(
-                        [
-                            ft.Container(
-                                content=ft.Column(
-                                    [
-                                        ft.Text(
-                                            "Create New Scanner User",
-                                            size=20,
-                                            weight=ft.FontWeight.BOLD,
-                                            color=PRIMARY_COLOR
-                                        ),
-                                        ft.Text(
-                                            "Create users who can scan attendance for events",
-                                            size=12,
-                                            color=ft.Colors.GREY_600,
-                                            italic=True
-                                        ),
-                                        ft.Container(height=10),
-                                        
-                                        # Form
-                                        ft.Container(
-                                            content=ft.Column(
-                                                [
-                                                    username_field,
-                                                    password_field,
-                                                    full_name_field,
-                                                    role_dropdown,
-                                                    ft.Container(height=10),
-                                                    ft.ElevatedButton(
-                                                        "Create User",
-                                                        width=300,
-                                                        height=50,
-                                                        on_click=create_user_handler,
-                                                        style=ft.ButtonStyle(
-                                                            bgcolor=PRIMARY_COLOR,
-                                                            color=ft.Colors.BLACK
-                                                        )
-                                                    ),
-                                                    status_text,
-                                                ],
-                                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                                spacing=15
-                                            ),
-                                            padding=20,
-                                            bgcolor=BLUE_50,
-                                            border_radius=10
-                                        ),
-                                    ],
-                                    spacing=15
-                                ),
-                                padding=20
-                            ),
-                            
-                            ft.Divider(),
-                            ft.Text(
-                                "Existing Users",
-                                size=16,
-                                weight=ft.FontWeight.BOLD,
-                                text_align=ft.TextAlign.CENTER
-                            ),
-                            ft.Container(
-                                content=users_list,
-                                expand=True,
-                                border=ft.border.all(1, ft.Colors.GREY_300),
-                                border_radius=10,
-                                padding=10
-                            )
-                        ],
-                        spacing=10,
-                        expand=True,
-                        scroll=ft.ScrollMode.AUTO
-                    )
-                ]
->>>>>>> upstream/main
             )
             
-            # Build users list card
+            # Build users list card - YOUR premium design
             users_card = self.create_modern_card(
                 content=ft.Column(
                     [

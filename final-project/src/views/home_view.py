@@ -20,227 +20,6 @@ class HomeView(BaseView):
             current_user_role = self.db.get_user_role(current_username) if current_username else 'scanner'
             is_admin = current_user_role and current_user_role.lower() == 'admin'
 
-            # Create a scrollable column to hold the event list
-            event_list_column = ft.Column(
-                scroll=ft.ScrollMode.AUTO,
-                expand=True
-            )
-            event_list_container = ft.Container(
-                content=event_list_column,
-                expand=True
-            )
-
-            def refresh_event_list():
-                """Refresh the event list from the database."""
-                events = self.db.get_all_events()
-                
-                def create_event_card(event_id: str, event_data: dict):
-                    """Create a card for displaying an event."""
-                    # Build menu items based on user role
-                    menu_items = [
-                        ft.PopupMenuItem(
-                            text="View Attendance",
-                            icon=ft.Icons.LIST,
-                            on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
-                        ),
-                        ft.PopupMenuItem(
-                            text="Start Scanning",
-                            icon=ft.Icons.QR_CODE_SCANNER,
-                            on_click=lambda e, eid=event_id: self.page.go(f"/scan/{eid}")
-                        ),
-                    ]
-                    
-                    # Only show delete option for admins
-                    if is_admin:
-                        menu_items.extend([
-                            ft.PopupMenuItem(),  # Divider
-                            ft.PopupMenuItem(
-                                text="Delete Event",
-                                icon=ft.Icons.DELETE,
-                                on_click=lambda e, eid=event_id, name=event_data['name']: 
-                                    delete_event_handler(eid, name)
-                            ),
-                        ])
-                    
-                    return ft.Card(
-                        elevation=3,
-                        content=ft.Container(
-                            content=ft.Column(
-                                [
-                                    ft.Container(
-                                        content=ft.Row(
-                                            [
-                                                ft.Icon(ft.Icons.EVENT, color=PRIMARY_COLOR, size=28),
-                                                ft.Column(
-                                                    [
-                                                        ft.Text(
-                                                            event_data['name'],
-                                                            weight=ft.FontWeight.BOLD,
-                                                            size=16,
-                                                            color=ft.Colors.BLACK87
-                                                        ),
-                                                        ft.Text(
-                                                            event_data['date'],
-                                                            size=13,
-                                                            color=ft.Colors.GREY_600
-                                                        ),
-                                                    ],
-                                                    spacing=3,
-                                                    expand=True
-                                                ),
-                                                ft.PopupMenuButton(
-                                                    items=menu_items
-                                                )
-                                            ],
-                                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                            spacing=12
-                                        ),
-                                        padding=15
-                                    ),
-                                    ft.Divider(height=1),
-                                    ft.Container(
-                                        content=ft.Text(
-                                            event_data['desc'] if event_data['desc'] else "No description",
-                                            size=12,
-                                            color=ft.Colors.GREY_700,
-                                            max_lines=2,
-                                            overflow=ft.TextOverflow.ELLIPSIS
-                                        ),
-                                        padding=ft.padding.symmetric(horizontal=15, vertical=10)
-                                    )
-                                ],
-                                spacing=0
-                            ),
-                            padding=0
-                        )
-                    )
-                
-                # Create event list or empty state
-                if events:
-                    # Build header with conditional Add button
-                    header_row = [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    "Events",
-                                    size=18,
-                                    weight=ft.FontWeight.BOLD,
-                                    color=ft.Colors.BLACK87
-                                ),
-                                ft.Text(
-                                    f"{len(events)} event{'s' if len(events) != 1 else ''}",
-                                    size=13,
-                                    color=ft.Colors.GREY_600
-                                )
-                            ],
-                            spacing=4
-                        ),
-                        ft.Container(expand=True),  # Spacer
-                    ]
-                    
-                    # Only add the button if user is admin
-                    if is_admin:
-                        header_row.append(
-                            ft.ElevatedButton(
-                                "Add Event",
-                                icon=ft.Icons.ADD,
-                                on_click=lambda e: self.page.go("/create_event"),
-                                style=ft.ButtonStyle(
-                                    bgcolor=PRIMARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                                    shape=ft.RoundedRectangleBorder(radius=5)
-                                )
-                            )
-                        )
-                    
-                    event_list_column.controls = [
-                        ft.Container(
-                            content=ft.Row(
-                                header_row,
-                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=12
-                            ),
-                            padding=ft.padding.only(left=20, right=20, top=16, bottom=12)
-                        ),
-                        ft.ListView(
-                            controls=[create_event_card(eid, data) for eid, data in events.items()],
-                            spacing=12,
-                            padding=ft.padding.symmetric(horizontal=20, vertical=0),
-                            expand=True
-                        )
-                    ]
-                else:
-                    # Build header for empty state with conditional Add button
-                    header_row = [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    "Events",
-                                    size=18,
-                                    weight=ft.FontWeight.BOLD,
-                                    color=ft.Colors.BLACK87
-                                ),
-                                ft.Text(
-                                    "0 events",
-                                    size=13,
-                                    color=ft.Colors.GREY_600
-                                )
-                            ],
-                            spacing=4
-                        ),
-                        ft.Container(expand=True),  # Spacer
-                    ]
-                    
-                    # Only add the button if user is admin
-                    if is_admin:
-                        header_row.append(
-                            ft.ElevatedButton(
-                                "Add Event",
-                                icon=ft.Icons.ADD,
-                                on_click=lambda e: self.page.go("/create_event"),
-                                style=ft.ButtonStyle(
-                                    bgcolor=PRIMARY_COLOR,
-                                    color=ft.Colors.WHITE,
-                                    padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                                    shape=ft.RoundedRectangleBorder(radius=5)
-                                )
-                            )
-                        )
-                    
-                    event_list_column.controls = [
-                        ft.Container(
-                            content=ft.Row(
-                                header_row,
-                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=12
-                            ),
-                            padding=ft.padding.only(left=20, right=20, top=16, bottom=12)
-                        ),
-                        ft.Container(
-                            content=ft.Column(
-                                [
-                                    ft.Icon(ft.Icons.EVENT_BUSY, size=80, color=ft.Colors.GREY_300),
-                                    ft.Text("No events yet", size=22, color=ft.Colors.GREY_600, weight=ft.FontWeight.BOLD),
-                                    ft.Text("Create your first event to get started" if is_admin else "No events available", size=14, color=ft.Colors.GREY_500)
-                                ],
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=16
-                            ),
-                            alignment=ft.alignment.center,
-                            expand=True
-                        )
-                    ]
-                
-                try:
-                    event_list_column.update()
-                except:
-                    pass
-
-<<<<<<< HEAD
             def parse_event_date(event_date_str: str):
                 """Parse event date string handling multiple formats."""
                 try:
@@ -253,16 +32,6 @@ class HomeView(BaseView):
                             return datetime.strptime(event_date_str, "%b %d, %Y").date()
                         except:
                             return None
-=======
-            def delete_event_handler(event_id: str, event_name: str):
-                """Handle event deletion with confirmation."""
-                def confirm_delete(e):
-                    self.db.delete_event(event_id)
-                    self.show_snackbar(f"Event '{event_name}' deleted", ft.Colors.GREEN)
-                    self.page.close(dialog)
-                    # Refresh the event list immediately
-                    refresh_event_list()
->>>>>>> upstream/main
 
             def is_event_upcoming(event_date_str: str) -> bool:
                 """Check if event date is in the future."""
@@ -446,7 +215,6 @@ class HomeView(BaseView):
                 )
                 self.page.open(dialog)
 
-<<<<<<< HEAD
             def create_event_card(event_id: str, event_data: dict):
                 """Create a premium styled card for displaying an event."""
                 description = event_data.get('desc', '').strip()
@@ -478,9 +246,36 @@ class HomeView(BaseView):
                     icon_bg = PRIMARY_COLOR
                     badge_text = None
                     badge_color = None
-                    scan_button_color = ft.Colors.RED_400
-                    scan_button_text = "Past Event"
+                    scan_button_color = PRIMARY_COLOR
+                    scan_button_text = "Scan QR"
                     card_border = ft.Colors.GREY_200
+                
+                # Build menu items based on role
+                menu_items = [
+                    ft.PopupMenuItem(
+                        text="View Attendance",
+                        icon=ft.Icons.PEOPLE_OUTLINE_ROUNDED,
+                        on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
+                    ),
+                    ft.PopupMenuItem(
+                        text="Start Scanning",
+                        icon=ft.Icons.QR_CODE_SCANNER_ROUNDED,
+                        on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
+                            handle_scan_click(eid, edate, ename)
+                    ),
+                ]
+                
+                # Add delete option only for admins
+                if is_admin:
+                    menu_items.extend([
+                        ft.PopupMenuItem(),
+                        ft.PopupMenuItem(
+                            text="Delete Event",
+                            icon=ft.Icons.DELETE_OUTLINE_ROUNDED,
+                            on_click=lambda e, eid=event_id, name=event_data['name']: 
+                                delete_event_handler(eid, name)
+                        ),
+                    ])
                 
                 return ft.Container(
                     content=ft.Container(
@@ -509,7 +304,7 @@ class HomeView(BaseView):
                                                     offset=ft.Offset(0, 6),
                                                 ),
                                             ),
-                                            # Event details with text shadows
+                                            # Event details
                                             ft.Container(
                                                 content=ft.Column(
                                                     [
@@ -573,32 +368,13 @@ class HomeView(BaseView):
                                                 ),
                                                 expand=True,
                                             ),
-                                            # Menu button - fixed position
+                                            # Menu button
                                             ft.Container(
                                                 content=ft.PopupMenuButton(
                                                     icon=ft.Icons.MORE_VERT_ROUNDED,
                                                     icon_color=ft.Colors.GREY_600,
                                                     icon_size=22,
-                                                    items=[
-                                                        ft.PopupMenuItem(
-                                                            text="View Attendance",
-                                                            icon=ft.Icons.PEOPLE_OUTLINE_ROUNDED,
-                                                            on_click=lambda e, eid=event_id: self.page.go(f"/event/{eid}")
-                                                        ),
-                                                        ft.PopupMenuItem(
-                                                            text="Start Scanning",
-                                                            icon=ft.Icons.QR_CODE_SCANNER_ROUNDED,
-                                                            on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
-                                                                handle_scan_click(eid, edate, ename)
-                                                        ),
-                                                        ft.PopupMenuItem(),
-                                                        ft.PopupMenuItem(
-                                                            text="Delete Event",
-                                                            icon=ft.Icons.DELETE_OUTLINE_ROUNDED,
-                                                            on_click=lambda e, eid=event_id, name=event_data['name']: 
-                                                                delete_event_handler(eid, name)
-                                                        ),
-                                                    ]
+                                                    items=menu_items
                                                 ),
                                                 width=40,
                                                 alignment=ft.alignment.top_right,
@@ -615,7 +391,7 @@ class HomeView(BaseView):
                                     bgcolor=ft.Colors.GREY_200,
                                     margin=ft.margin.symmetric(horizontal=20),
                                 ),
-                                # Description with premium styling
+                                # Description
                                 ft.Container(
                                     content=ft.Row(
                                         [
@@ -644,7 +420,7 @@ class HomeView(BaseView):
                                     bgcolor=ft.Colors.GREY_200,
                                     margin=ft.margin.symmetric(horizontal=20),
                                 ),
-                                # Action buttons with premium styling
+                                # Action buttons
                                 ft.Container(
                                     content=ft.Row(
                                         [
@@ -755,6 +531,7 @@ class HomeView(BaseView):
                                     spacing=4,
                                     expand=True,
                                 ),
+                                # Only show Add Event button for admins
                                 ft.ElevatedButton(
                                     content=ft.Row(
                                         [
@@ -777,7 +554,7 @@ class HomeView(BaseView):
                                         elevation=4,
                                         shadow_color=ft.Colors.with_opacity(0.25, PRIMARY_COLOR),
                                     ),
-                                ),
+                                ) if is_admin else ft.Container(),
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
@@ -785,7 +562,7 @@ class HomeView(BaseView):
                         ft.Container(
                             content=ft.Row(
                                 [
-                                    # Sort dropdown with premium styling
+                                    # Sort dropdown
                                     ft.Container(
                                         content=ft.Row(
                                             [
@@ -832,7 +609,7 @@ class HomeView(BaseView):
                                         ),
                                         expand=True,
                                     ),
-                                    # Filter dropdown with premium styling
+                                    # Filter dropdown
                                     ft.Container(
                                         content=ft.Row(
                                             [
@@ -896,10 +673,6 @@ class HomeView(BaseView):
                     offset=ft.Offset(0, 3),
                 ),
             )
-=======
-            # Initial population of event list
-            refresh_event_list()
->>>>>>> upstream/main
 
             # Create event list or empty state
             if filtered_events:
@@ -927,38 +700,11 @@ class HomeView(BaseView):
             return ft.View(
                 "/home",
                 [
-<<<<<<< HEAD
                     self.create_app_bar("MaScan"),
                     header,
                     event_list,
                 ],
                 bgcolor=ft.Colors.GREY_50,
-=======
-                    ft.AppBar(
-                        title=ft.Row(
-                            [
-                                ft.Image(
-                                    src="C:\\Users\\Asus\\Documents\\QR-Attendance-Checker\\final-project\\src\\assets\\MS_Logo_White.png",
-                                    width=32,
-                                    height=32
-                                ),
-                                ft.Text("MaScan", size=20, weight=ft.FontWeight.BOLD)
-                            ],
-                            spacing=10,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER
-                        ),
-                        actions=[
-                            ft.IconButton(
-                                icon=ft.Icons.MENU,
-                                on_click=lambda e: self.app.open_end_drawer()
-                            )
-                        ] if self.app.current_user else [],
-                        bgcolor=PRIMARY_COLOR,
-                        color=ft.Colors.WHITE,
-                    ),
-                    event_list_container,
-                ]
->>>>>>> upstream/main
             )
 
         except Exception as ex:
