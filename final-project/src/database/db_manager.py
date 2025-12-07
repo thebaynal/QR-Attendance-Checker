@@ -4,6 +4,7 @@
 import sqlite3
 import time
 import random
+import bcrypt
 from datetime import datetime
 from typing import Optional, Dict
 
@@ -300,12 +301,31 @@ class Database:
                 print(f"Fallback error: {fallback_error}")
                 return {'morning': 0, 'afternoon': 0}
 
+    # Password hashing methods
+    def hash_password(self, password: str) -> str:
+        """Hash a password using bcrypt."""
+        salt = bcrypt.gensalt(rounds=12)
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    
+    def verify_password(self, password: str, stored_hash: str) -> bool:
+        """Verify a password against its bcrypt hash."""
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+        except Exception:
+            return False
+
     # User authentication
     def authenticate_user(self, username: str, password: str) -> Optional[str]:
         """Authenticate a user and return their username if successful."""
-        query = "SELECT username FROM users WHERE username = ? AND password = ?"
-        result = self._execute(query, (username, password), fetch_one=True)
-        return result[0] if result else None
+        query = "SELECT password FROM users WHERE username = ?"
+        result = self._execute(query, (username,), fetch_one=True)
+        
+        if result:
+            stored_hash = result[0]
+            # Verify password using bcrypt
+            if self.verify_password(password, stored_hash):
+                return username
+        return None
     
     def get_user_role(self, username: str) -> Optional[str]:
         """Get user role (admin or scanner)."""
@@ -322,10 +342,12 @@ class Database:
             return False
         
         try:
+            # Hash the password before storing
+            hashed_password = self.hash_password(password)
             query = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)"
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (username, password, full_name, role, datetime.now().isoformat()))
+                cursor.execute(query, (username, hashed_password, full_name, role, datetime.now().isoformat()))
                 conn.commit()
                 return cursor.rowcount > 0
         except sqlite3.Error as e:
