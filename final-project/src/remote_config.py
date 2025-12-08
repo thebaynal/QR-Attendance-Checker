@@ -8,4 +8,4 @@ API_BASE_URL = "http://192.168.1.16:5000"  # CHANGE THIS TO YOUR IP!
 API_KEY = "QRAttendanceAPI_SecureKey_789!@#$%"
 
 # Set to True to use remote database, False for local
-USE_REMOTE_DATABASE = True
+USE_REMOTE_DATABASE = False
