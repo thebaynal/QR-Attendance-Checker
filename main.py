@@ -7,9 +7,12 @@ import os
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'final-project', 'src'))
 
-# Import Flet
+# Import Flet and the actual app
 import flet as ft
-from main import main as app_main
+from app import MaScanApp
+
+def main(page: ft.Page):
+    MaScanApp(page)
 
 if __name__ == '__main__':
-    ft.app(target=app_main)
+    ft.app(target=main)
