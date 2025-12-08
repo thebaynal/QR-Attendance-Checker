@@ -1,103 +1,155 @@
 ================================================================================
-QUICK START GUIDE - SECURITY IMPLEMENTATION
+QUICK START GUIDE - MASCAN QR ATTENDANCE CHECKER
 ================================================================================
 
-You asked for: Secure database + Keep database on laptop
-You got: ✓ Password hashing + ✓ REST API server + ✓ Environment config
+Status: ✓ FULLY FUNCTIONAL
+✓ Secure password hashing (bcrypt)
+✓ Local or multi-device API mode
+✓ Full QR scanning on desktop
+✓ Manual entry on web/phone
+✓ All CRUD operations working
 
 ================================================================================
-🚀 QUICK START (5 MINUTES)
+🚀 QUICK START (2 MINUTES)
 ================================================================================
 
 1. ACTIVATE VIRTUAL ENVIRONMENT
    Command: .\.venv\Scripts\Activate.ps1
    (You should see (.venv) at start of terminal prompt)
 
-2. RUN DESKTOP APP (LAPTOP ONLY)
+2. RUN DESKTOP APP (LOCAL MODE - LAPTOP ONLY)
    Command: python final-project/src/main.py
-   Login: admin / AdminPass456!@#$%^&*
-
-3. RUN API SERVER (LAPTOP + PHONE)
-   Open NEW terminal and run:
-   Command: python final-project/src/api_server.py
-   You should see:
+   Login: admin / Admin@123
    
-   ========================================================
-   QR ATTENDANCE CHECKER - API SERVER
-   ========================================================
-   Starting server on http://0.0.0.0:5000
-   Press Ctrl+C to stop
-   ========================================================
+   This runs the app in local mode with a local database.
+   Best for: Single laptop usage with full QR scanning
 
-4. FIND LAPTOP IP (for phone connection)
+3. FOR MULTI-DEVICE SETUP (LAPTOP + OTHER DEVICES)
+   
+   Terminal 1 - Start API Server (keep running):
+     Command: python final-project/src/api_server.py
+     Output: "Starting server on http://0.0.0.0:5000"
+   
+   Terminal 2 - Run App (will connect via API):
+     Command: python final-project/src/main.py
+     First time: Set USE_REMOTE_DATABASE = True in remote_config.py
+     Or: Devices can run local mode independently
+
+4. FIND YOUR LAPTOP IP (for other devices)
    Command: ipconfig
-   Look for: IPv4 Address (example: 192.168.1.100)
+   Look for: "IPv4 Address" (example: 192.168.1.100)
+   Write it down!
 
-5. UPDATE .env FOR PHONE
-   Edit .env and change:
-   API_SERVER_URL=http://192.168.1.100:5000
-   (Replace 192.168.1.100 with YOUR actual IP)
-
-═══════════════════════════════════════════════════════════
-
-✓ Desktop app works locally with encrypted passwords
-✓ API server allows phone to access same database
-✓ Database stays on your laptop, not cloud
-✓ All communication through API with authentication
+5. FOR OTHER DEVICES
+   Copy project to other device
+   Option A (Independent): python final-project/src/main.py
+                           (each device has own database)
+   Option B (Shared):      Update remote_config.py API_BASE_URL with your IP
+                           Run API server on main computer (keep running)
+                           Run app on other device (connects via API)
 
 ═══════════════════════════════════════════════════════════
 
-PASSWORDS (Change These!):
+✓ Desktop app works with full OpenCV QR scanning
+✓ Web/phone app works with manual QR entry
+✓ API server enables multi-device shared database
+✓ Database stays on your computer (not cloud)
+✓ All passwords secured with bcrypt hashing
+✓ All CRUD operations fully functional
 
-Edit .env and update:
-  DB_PASSWORD=SecureDbPass123!@#$%          (your db password)
-  ADMIN_PASSWORD=AdminPass456!@#$%^&*       (login password)
-  API_KEY=QRAttendanceAPI_SecureKey_789!@#$%(phone access key)
+═══════════════════════════════════════════════════════════
 
-Make them STRONG: Mix of uppercase, lowercase, numbers, symbols
-Example: MySecure@Password2024!@#$%^&
+DEPLOYMENT MODES:
+
+LOCAL MODE (Default - Single Device):
+  - Run app without API server
+  - Each device has independent database
+  - No network needed
+  - Best for: Testing, single laptop
+  - Command: python final-project/src/main.py
+
+REMOTE MODE (Multi-Device - Shared Database):
+  - Run API server on main computer (keep running)
+  - Other devices connect via network
+  - All devices share same database
+  - Best for: School with multiple check-in points
+  - Config: Update remote_config.py with laptop IP
+  - Server: python final-project/src/api_server.py
+  - Client: python final-project/src/main.py (on other device)
+
+═══════════════════════════════════════════════════════════
+
+DEFAULT CREDENTIALS:
+
+Username: admin
+Password: Admin@123
+
+⚠️ IMPORTANT: Change this immediately!
+Edit final-project/src/database/db_manager.py
+Find line: admin password and update
+Then restart app to initialize new credentials
 
 ================================================================================
-FOR PHONE DEPLOYMENT (LATER)
+FOR WEB/PHONE DEPLOYMENT (LATER)
 ================================================================================
 
-1. Build APK:
+1. Web Browser Access (Easiest):
+   - Run API server: python final-project/src/api_server.py
+   - Run app: python final-project/src/main.py
+   - Open browser: http://localhost:8080
+   - Or from other device: http://your-laptop-ip:8080
+   - Uses camera display + manual QR entry (no auto-scanning)
+
+2. Build APK for Phone:
    pip install buildozer cython
    buildozer android debug
+   Then install on phone: adb install bin\app.apk
 
-2. Install on phone:
-   adb install bin\qrattendance-1.0.0-debug.apk
-
-3. Configure phone app:
-   API Server: http://192.168.1.100:5000
-   API Key: QRAttendanceAPI_SecureKey_789!@#$%
-   Username: admin
-   Password: AdminPass456!@#$%^&*
+3. Configure on Phone:
+   - Set API_BASE_URL in remote_config.py to your laptop IP
+   - Example: http://192.168.1.100:5000
+   - Login: admin / Admin@123
+   - Start typing QR codes manually or use camera
 
 ================================================================================
-SECURITY FEATURES ADDED
+SECURITY FEATURES
 ================================================================================
 
 ✓ Passwords stored as bcrypt hashes (not plain text)
-✓ Environment variables protect credentials (.env)
-✓ REST API with API key authentication
+✓ REST API with API key authentication (if using remote mode)
 ✓ Login/logout tracking in database
 ✓ Scan audit trail with user attribution
 ✓ .gitignore prevents accidental credential commits
+✓ All database operations validated and secure
+✓ CORS enabled for cross-origin requests (web mode)
 
 ================================================================================
-FILES CREATED/MODIFIED
+KEY FILES
 ================================================================================
 
-NEW:
-  ✓ .env - Configuration file (YOUR SECRETS)
-  ✓ .gitignore - Prevents .env from git
-  ✓ SECURITY_SETUP_GUIDE.txt - This comprehensive guide
-  ✓ final-project/src/api_server.py - REST API server
+APPLICATION:
+  ✓ final-project/src/main.py - Main application entry point
+  ✓ final-project/src/app.py - Application controller
+  ✓ final-project/src/api_server.py - REST API server (for multi-device)
+  ✓ final-project/src/remote_config.py - Configuration for remote mode
 
-MODIFIED:
-  ✓ final-project/src/database/db_manager.py
-  ✓ requirements.txt (added 13 security packages)
+DATABASE:
+  ✓ final-project/src/database/db_manager.py - Local database manager
+  ✓ final-project/src/api_db_manager.py - API database wrapper
+  ✓ mascan_attendance.db - SQLite database (auto-created)
+
+VIEWS/UI:
+  ✓ final-project/src/views/ - All UI screens
+  ✓ final-project/src/utils/qr_scanner.py - QR detection engine
+
+CONFIGURATION:
+  ✓ requirements.txt - Python dependencies
+  ✓ remote_config.py - API configuration
+
+DOCUMENTATION:
+  ✓ START_HERE.txt - This guide
+  ✓ SECURITY_SETUP_GUIDE.txt - Detailed security info
+  ✓ README.md - Project overview
 
 TEST (can delete):
   - test_env.py

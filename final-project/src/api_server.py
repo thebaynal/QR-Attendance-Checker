@@ -116,16 +116,27 @@ def create_event():
     """Create new event."""
     try:
         data = request.get_json()
-        event_id = data.get('id')
         name = data.get('name')
         date = data.get('date')
         description = data.get('description', '')
         
-        if not all([event_id, name, date]):
+        if not all([name, date]):
             return jsonify({'error': 'Missing required fields'}), 400
         
-        db.create_event(event_id, name, date, description)
-        return jsonify({'success': True, 'message': 'Event created'}), 201
+        # Use the database's create_event which generates the ID
+        event_id = db.create_event(name, date, description)
+        return jsonify({'success': True, 'message': 'Event created', 'event_id': event_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/events/<event_id>', methods=['DELETE'])
+@require_api_key
+def delete_event_endpoint(event_id):
+    """Delete an event."""
+    try:
+        db._execute("DELETE FROM attendance_timeslots WHERE event_id = ?", (event_id,))
+        db._execute("DELETE FROM events WHERE id = ?", (event_id,))
+        return jsonify({'success': True, 'message': 'Event deleted'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -155,6 +166,16 @@ def create_user():
         
         db.create_user(username, password, full_name, role)
         return jsonify({'success': True, 'message': 'User created'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<username>', methods=['DELETE'])
+@require_api_key
+def delete_user(username):
+    """Delete a user."""
+    try:
+        db._execute("DELETE FROM users WHERE username = ?", (username,))
+        return jsonify({'success': True, 'message': 'User deleted'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -211,6 +232,70 @@ def get_attendance(event_id):
     try:
         attendance = db.get_attendance_by_event(event_id)
         return jsonify(attendance), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/students/<school_id>', methods=['GET'])
+@require_api_key
+def get_student(school_id):
+    """Get student information by school ID."""
+    try:
+        student = db.get_student_by_id(school_id)
+        if student:
+            return jsonify(student), 200
+        else:
+            return jsonify({'error': 'Student not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance-by-section/<event_id>', methods=['GET'])
+@require_api_key
+def get_attendance_by_section(event_id):
+    """Get attendance grouped by year and section."""
+    try:
+        attendance = db.get_attendance_by_section(event_id)
+        return jsonify(attendance), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/check-timeslot/<event_id>/<school_id>/<time_slot>', methods=['GET'])
+@require_api_key
+def check_timeslot(event_id, school_id, time_slot):
+    """Check if student already checked in for time slot."""
+    try:
+        checked_in = db.check_timeslot_attendance(event_id, school_id, time_slot)
+        return jsonify({'checked_in': checked_in}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/record-timeslot', methods=['POST'])
+@require_api_key
+def record_timeslot():
+    """Record attendance for specific time slot."""
+    try:
+        data = request.get_json()
+        event_id = data.get('event_id')
+        school_id = data.get('school_id')
+        time_slot = data.get('time_slot')
+        
+        if not all([event_id, school_id, time_slot]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        success = db.record_timeslot_attendance(event_id, school_id, time_slot)
+        if success:
+            return jsonify({'success': True, 'message': 'Timeslot attendance recorded'}), 200
+        else:
+            return jsonify({'error': 'Failed to record attendance'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance-summary/<event_id>', methods=['GET'])
+@require_api_key
+def get_attendance_summary(event_id):
+    """Get attendance summary for an event."""
+    try:
+        summary = db.get_attendance_summary(event_id)
+        return jsonify(summary), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

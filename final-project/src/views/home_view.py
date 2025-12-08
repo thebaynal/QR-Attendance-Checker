@@ -242,11 +242,19 @@ class HomeView(BaseView):
             def delete_event_handler(event_id: str, event_name: str):
                 """Handle event deletion with confirmation."""
                 def confirm_delete(e):
-                    self.db.delete_event(event_id)
-                    self.show_snackbar(f"Event '{event_name}' deleted", ft.Colors.GREEN)
-                    self.page.close(dialog)
-                    # Refresh the event list immediately
-                    refresh_event_list()
+                    try:
+                        success = self.db.delete_event(event_id)
+                        if success:
+                            self.show_snackbar(f"Event '{event_name}' deleted", ft.Colors.GREEN)
+                            # Refresh the event list immediately
+                            refresh_event_list()
+                        else:
+                            self.show_snackbar(f"Failed to delete event", ft.Colors.RED)
+                    except Exception as ex:
+                        print(f"Error deleting event: {ex}")
+                        self.show_snackbar(f"Error: {str(ex)}", ft.Colors.RED)
+                    finally:
+                        self.page.close(dialog)
 
                 def cancel_delete(e):
                     self.page.close(dialog)
