@@ -1,6 +1,3 @@
-Paste this into **APK_BUILD.md**:
-
-```markdown
 # 📦 Building APK for Android
 
 ## Prerequisites
