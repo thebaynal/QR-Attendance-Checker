@@ -135,11 +135,12 @@ class Database:
                     else:
                         print("Admin user already has 'admin' role")
                 else:
-                    # Create admin user
+                    # Create admin user with hashed password
                     print("Creating default admin user")
+                    hashed_password = self.hash_password('Admin@123')
                     cursor.execute(
                         "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
-                        ('admin', 'admin123', 'Administrator', 'admin', datetime.now().isoformat())
+                        ('admin', hashed_password, 'Administrator', 'admin', datetime.now().isoformat())
                     )
                     conn.commit()
                     print("Default admin user created")
@@ -186,12 +187,26 @@ class Database:
 
     def delete_event(self, event_id: str) -> bool:
         """Delete an event and all its attendance records."""
-        attendance_query = "DELETE FROM attendance WHERE event_id = ?"
-        self._execute(attendance_query, (event_id,))
-        
-        event_query = "DELETE FROM events WHERE id = ?"
-        result = self._execute(event_query, (event_id,))
-        return result is not None
+        try:
+            attendance_query = "DELETE FROM attendance WHERE event_id = ?"
+            self._execute(attendance_query, (event_id,))
+            
+            event_query = "DELETE FROM events WHERE id = ?"
+            self._execute(event_query, (event_id,))
+            return True
+        except Exception as e:
+            print(f"Error deleting event: {e}")
+            return False
+    
+    def delete_user(self, username: str) -> bool:
+        """Delete a user from the database."""
+        try:
+            query = "DELETE FROM users WHERE username = ?"
+            self._execute(query, (username,))
+            return True
+        except Exception as e:
+            print(f"Error deleting user: {e}")
+            return False
 
     # Attendance operations with time slot support
     def record_attendance(self, event_id: str, user_id: str, user_name: str, 

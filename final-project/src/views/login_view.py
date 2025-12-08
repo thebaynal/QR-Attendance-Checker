@@ -50,12 +50,17 @@ class LoginView(BaseView):
             
             if user_authenticated:
                 # Get full name for display
-                full_name = self.db._execute(
-                    "SELECT full_name FROM users WHERE username = ?",
-                    (username_value,),
-                    fetch_one=True
-                )
-                display_name = full_name[0] if full_name else username_value
+                try:
+                    # Try local database method first
+                    full_name = self.db._execute(
+                        "SELECT full_name FROM users WHERE username = ?",
+                        (username_value,),
+                        fetch_one=True
+                    )
+                    display_name = full_name[0] if full_name else username_value
+                except (AttributeError, TypeError):
+                    # Fall back to API method if _execute doesn't work
+                    display_name = self.db.get_user_full_name(username_value) or username_value
                 
                 self.app.current_user = username_value
                 
