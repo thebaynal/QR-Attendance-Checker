@@ -1,42 +1,106 @@
-I see the issue - the documentation section was added at the bottom after all the other content. It needs to be moved up right after the "Quick Start" section for better visibility. Let me reorganize the README properly.
+<div align="center">
 
-The documentation section should go between "Quick Start" and "Project Structure". Here's the corrected structure:
-
-Replace the entire README with this:
-
-```markdown
 # 🎯 MaScan — QR Attendance Checker
 
-> **Smart attendance management system powered by QR codes** • Built with Flet & Python
+**A Smart Attendance Management System Powered by QR Codes**
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9%2B-green.svg)](https://www.python.org/)
-[![Flet](https://img.shields.io/badge/flet-0.28.3-blueviolet.svg)](https://flet.dev)
-[![Status](https://img.shields.io/badge/status-active-brightgreen.svg)](https://github.com/Fred727wysi/QR-Attendance-Checker)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-green.svg?style=for-the-badge)](https://www.python.org/)
+[![Flet](https://img.shields.io/badge/Flet-0.28.3-blueviolet.svg?style=for-the-badge)](https://flet.dev)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg?style=for-the-badge)](https://github.com/Fred727wysi/QR-Attendance-Checker)
+[![PRs](https://img.shields.io/badge/PRs-Welcome-blue.svg?style=for-the-badge)](https://github.com/Fred727wysi/QR-Attendance-Checker/pulls)
+
+*Built with ❤️ by a collaborative team | [Star us on GitHub](https://github.com/Fred727wysi/QR-Attendance-Checker)* ⭐
+
+</div>
+
+---
+
+## 📖 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Documentation](#-documentation)
+- [Architecture](#-architecture)
+- [Technology Stack](#-technology-stack)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Contributing](#-contributing)
+- [Roadmap](#-roadmap)
+- [Support](#-support)
+- [License](#-license)
 
 ---
 
 ## ✨ Features
 
-- 🎫 **QR Code Scanning** — Real-time attendance tracking with camera integration
-- 📊 **Event Management** — Create, manage, and track events with ease
-- 👥 **User Management** — Role-based access (Admin/Scanner) with secure authentication
-- 📈 **Analytics Dashboard** — View attendance statistics and reports
-- 📄 **PDF Export** — Generate professional attendance reports
-- 🎨 **Modern UI** — Beautiful animations and intuitive interface
-- ⏰ **Time Slots** — Support for morning/afternoon attendance tracking
-- 🔐 **Secure** — Bcrypt password hashing and role-based authorization
+<table>
+<tr>
+<td>
+
+🎫 **QR Code Scanning**
+- Real-time attendance tracking
+- Camera integration
+- Multi-threaded processing
+
+</td>
+<td>
+
+📊 **Event Management**
+- Create & manage events
+- Track attendance per event
+- Time-slot support
+
+</td>
+</tr>
+<tr>
+<td>
+
+👥 **User Management**
+- Role-based access control
+- Admin & Scanner roles
+- Secure authentication
+
+</td>
+<td>
+
+📈 **Analytics & Reports**
+- Attendance statistics
+- PDF export
+- Activity logging
+
+</td>
+</tr>
+<tr>
+<td>
+
+🎨 **Modern UI**
+- Beautiful animations
+- Intuitive interface
+- Responsive design
+
+</td>
+<td>
+
+🔐 **Enterprise Security**
+- Bcrypt password hashing
+- API authentication
+- Audit trail
+
+</td>
+</tr>
+</table>
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.9 or higher
-- pip or poetry package manager
-- Camera (for QR scanning)
+- **Python** 3.9 or higher
+- **pip** or poetry
+- **Camera** (for QR scanning)
 
-### Installation
+### 30-Second Installation
 
 ```bash
 # Clone the repository
@@ -46,286 +110,429 @@ cd QR-Attendance-Checker
 # Install dependencies
 pip install -r requirements.txt
 
-# Or using poetry
-poetry install
-```
-
-### Initialize Database
-
-```bash
+# Initialize database
 cd final-project/src
 python init_db.py
-```
 
-### Run the Application
-
-```bash
-# Using Flet
-cd final-project
+# Run the app
+cd ..
 flet run
-
-# Or with poetry
-poetry run flet run
 ```
 
-### Default Admin Credentials
+### Login with Default Credentials
 
 | Field | Value |
 |-------|-------|
 | **Username** | `admin` |
 | **Password** | `Admin@123` |
 
-⚠️ **IMPORTANT**: Change the admin password immediately after first login!
+> ⚠️ **Security**: Change admin password immediately after first login!
 
 ---
 
 ## 📚 Documentation
 
-Get started quickly with our comprehensive guides:
+> **New to the project?** Start here! 👇
 
-| Guide | Purpose |
-|-------|---------|
-| 🚀 Getting Started | Installation, setup, and first run |
-| 🔐 Security Guide | Authentication, passwords, and best practices |
-| 📱 Phone Setup | API server and WiFi configuration for phones |
-| 📦 APK Build | Building and deploying to Android |
-| 🔧 Troubleshooting | Common issues and solutions |
-| 👨‍💻 Development | Contributing guide and architecture |
+| 📖 Guide | 🎯 Purpose | ⏱️ Time |
+|----------|-----------|--------|
+| **[🚀 Getting Started](./docs/GETTING_STARTED.md)** | Installation & first run | 5 min |
+| **[🔐 Security Guide](./docs/SECURITY.md)** | Authentication & best practices | 10 min |
+| **[📱 Phone Setup](./docs/PHONE_SETUP.md)** | API server & WiFi config | 15 min |
+| **[📦 APK Build](./docs/APK_BUILD.md)** | Deploy to Android | 20 min |
+| **[🔧 Troubleshooting](./docs/TROUBLESHOOTING.md)** | Common issues & solutions | — |
+| **[👨‍💻 Development](./docs/DEVELOPMENT.md)** | Contributing & architecture | — |
 
-**Quick Links:**
-- 🆘 Need help? Start with Getting Started
-- 🐛 Having issues? Check Troubleshooting
-- 📱 Want to deploy to phone? See Phone Setup
-- 💻 Contributing code? Read Development
+### Quick Links for Common Tasks
 
----
-
-## 📁 Project Structure
-
-```
-QR-Attendance-Checker/
-├── final-project/
-│   ├── src/
-│   │   ├── main.py                 # Application entry point
-│   │   ├── app.py                  # Main app orchestrator
-│   │   ├── init_db.py              # Database initialization
-│   │   ├── config/
-│   │   │   └── constants.py        # Configuration constants
-│   │   ├── database/
-│   │   │   └── db_manager.py       # SQLite database manager
-│   │   ├── utils/
-│   │   │   ├── qr_scanner.py       # QR detection with OpenCV
-│   │   │   └── pdf_export.py       # PDF report generation
-│   │   └── views/
-│   │       ├── base_view.py        # Base view class
-│   │       ├── login_view.py       # Authentication UI
-│   │       ├── home_view.py        # Events list
-│   │       ├── create_event_view.py# Event creation
-│   │       ├── event_view.py       # Event details & export
-│   │       ├── scan_view.py        # QR scanning interface
-│   │       ├── qr_generator_view.py# QR code generation
-│   │       ├── user_management_view.py # User CRUD
-│   │       ├── activity_log_view.py    # Audit trail
-│   │       └── ui_utils.py         # UI animations & styles
-│   └── pyproject.toml              # Project metadata
-├── docs/                           # Documentation guides
-├── requirements.txt                # Python dependencies
-└── README.md                       # This file
-```
+- 🆘 **Something broken?** → Troubleshooting Guide
+- 📱 **Want to use on phone?** → Phone Setup
+- 🔒 **Need security info?** → Security Guide
+- 💻 **Want to contribute?** → Development Guide
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture
+
+### System Design
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    MaScan Application                   │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌──────────────────┐         ┌──────────────────┐    │
+│  │   Views Layer    │         │   API Server     │    │
+│  │  (8 UI Screens)  │         │  (Flask REST)    │    │
+│  └────────┬─────────┘         └────────┬─────────┘    │
+│           │                            │               │
+│           └────────────────┬───────────┘               │
+│                            │                           │
+│                   ┌────────▼────────┐                 │
+│                   │ Database Layer  │                 │
+│                   │ (db_manager.py) │                 │
+│                   └────────┬────────┘                 │
+│                            │                           │
+│                   ┌────────▼────────┐                 │
+│                   │  SQLite DB      │                 │
+│                   └─────────────────┘                 │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+Desktop ─────────────┐
+                     ├──→ Database (Laptop)
+Phone (via WiFi) ───┘
+```
 
 ### Core Components
 
-#### 🔧 Application Shell (app.py)
-- Manages routing and view lifecycle
-- Handles user authentication state
-- Coordinates QR camera scanner
-- Error handling and fallback UI
+| Component | File | Purpose |
+|-----------|------|---------|
+| **Main App** | `app.py` | Routing, authentication, state management |
+| **Database** | `database/db_manager.py` | SQLite operations, queries, transactions |
+| **QR Scanner** | `utils/qr_scanner.py` | OpenCV camera capture, QR detection |
+| **PDF Export** | `utils/pdf_export.py` | Report generation with ReportLab |
+| **UI System** | `views/ui_utils.py` | Animations, styling, components |
+| **API Server** | `api_server.py` | REST API for phone access |
 
-#### 💾 Database Layer (db_manager.py)
-- SQLite database operations
-- User authentication (bcrypt hashing)
-- Event CRUD operations
-- Attendance recording and querying
+### Views (8 Screens)
 
-#### 🎨 UI Views (8 Total)
-| View | Purpose |
-|------|---------|
-| **LoginView** | User authentication |
-| **HomeView** | Events listing dashboard |
-| **CreateEventView** | New event creation form |
-| **EventView** | Event details & attendance records |
-| **ScanView** | Real-time QR code scanning |
-| **QRGeneratorView** | Generate & download QR codes (Admin) |
-| **UserManagementView** | User administration (Admin) |
-| **ActivityLogView** | Login audit trail (Admin) |
+| View | Route | Purpose | Access |
+|------|-------|---------|--------|
+| **Login** | `/` | User authentication | Public |
+| **Home** | `/home` | Events dashboard | Admin/Scanner |
+| **Create Event** | `/create_event` | New event form | Admin |
+| **Event Details** | `/event/<id>` | Attendance & export | Admin/Scanner |
+| **QR Scanner** | `/scan/<id>` | Real-time scanning | Admin/Scanner |
+| **QR Generator** | `/qr_generator` | Batch QR generation | Admin |
+| **User Manager** | `/user_management` | User CRUD | Admin |
+| **Activity Log** | `/activity_log` | Audit trail | Admin |
 
-#### 🔍 QR Processing (qr_scanner.py)
-- Multi-threaded camera capture
-- OpenCV-based frame processing
-- pyzbar QR code decoding
-- Duplicate scan prevention
+---
 
-#### 🎭 Styling System (ui_utils.py)
-- **AnimationUtils**: Fade, slide, and scale animations
-- **StyleUtils**: Centralized color palette and component styling
-- **LoadingIndicator**: Animated loading states
+## 💻 Technology Stack
+
+```
+Frontend          │ Backend        │ Database   │ Security
+─────────────────┼────────────────┼────────────┼──────────
+Flet 0.28.3      │ Python 3.9+    │ SQLite 3   │ Bcrypt
+Flutter UI       │ Flask REST     │ JSON       │ API Keys
+Animations       │ OpenCV         │ Queries    │ .env Config
+Real-time Camera │ pyzbar QR      │ Transactions│ Audit Log
+```
+
+---
+
+## 🔧 Installation
+
+### Step 1: Clone Repository
+
+```bash
+git clone https://github.com/Fred727wysi/QR-Attendance-Checker.git
+cd QR-Attendance-Checker
+```
+
+### Step 2: Create Virtual Environment
+
+```bash
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1  # Windows
+source .venv/bin/activate      # macOS/Linux
+```
+
+### Step 3: Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Step 4: Initialize Database
+
+```bash
+cd final-project/src
+python init_db.py
+cd ..
+```
+
+### Step 5: Run Application
+
+```bash
+# Desktop mode (laptop only)
+flet run
+
+# Or with API server (laptop + phone)
+# Terminal 1:
+python src/api_server.py
+
+# Terminal 2:
+flet run
+```
+
+**Need help?** See Getting Started Guide
+
+---
+
+## 📱 Usage
+
+### Desktop App
+
+1. **Login** with credentials (default: `admin` / `Admin@123`)
+2. **Create Events** (Admin only)
+3. **Scan QR Codes** to record attendance
+4. **View Reports** and export to PDF
+
+### Phone App
+
+1. **Build APK**: See APK Build Guide
+2. **Configure API**: Enter laptop IP and API key
+3. **Scan from Phone** - Database stays on laptop
+
+### API Server
+
+```bash
+# Start server
+python final-project/src/api_server.py
+
+# API runs on http://0.0.0.0:5000
+# Access from phone: http://<laptop-ip>:5000
+```
+
+**Full usage guide:** See Documentation
+
+---
+
+## 🗂️ Project Structure
+
+```
+QR-Attendance-Checker/
+├── docs/                          # 📚 Documentation
+│   ├── GETTING_STARTED.md
+│   ├── SECURITY.md
+│   ├── PHONE_SETUP.md
+│   ├── APK_BUILD.md
+│   ├── TROUBLESHOOTING.md
+│   └── DEVELOPMENT.md
+│
+├── final-project/
+│   ├── src/
+│   │   ├── main.py               # Entry point
+│   │   ├── app.py                # App orchestrator
+│   │   ├── init_db.py            # Database setup
+│   │   ├── api_server.py         # REST API server
+│   │   │
+│   │   ├── config/
+│   │   │   └── constants.py      # App configuration
+│   │   │
+│   │   ├── database/
+│   │   │   └── db_manager.py     # SQLite manager
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── qr_scanner.py     # QR detection
+│   │   │   └── pdf_export.py     # PDF generation
+│   │   │
+│   │   └── views/
+│   │       ├── base_view.py      # Base class
+│   │       ├── login_view.py
+│   │       ├── home_view.py
+│   │       ├── scan_view.py
+│   │       ├── event_view.py
+│   │       ├── create_event_view.py
+│   │       ├── qr_generator_view.py
+│   │       ├── user_management_view.py
+│   │       ├── activity_log_view.py
+│   │       └── ui_utils.py       # Animations & styles
+│   │
+│   └── pyproject.toml
+│
+├── config/                        # Configuration files
+├── data/                          # Data files
+├── requirements.txt               # Python dependencies
+├── README.md                      # This file
+└── LICENSE                        # MIT License
+```
+
+---
+
+## 🔐 Security
+
+### Features
+
+✅ **Bcrypt Password Hashing** (12 rounds)
+✅ **API Key Authentication**
+✅ **Role-Based Access Control** (Admin/Scanner)
+✅ **Activity Logging & Audit Trail**
+✅ **Environment Variable Configuration** (.env)
+✅ **Session Management**
+
+### Best Practices
+
+- Always change default passwords
+- Keep `.env` file private
+- Use strong passwords (16+ characters)
+- Regularly review activity logs
+- Enable debug mode only in development
+
+**See Security Guide for details**
 
 ---
 
 ## 📊 Database Schema
 
-### Events Table
+### Tables Overview
+
+**users** — Admin & Scanner accounts
 ```sql
-CREATE TABLE events (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    date TEXT NOT NULL,
-    description TEXT
-)
+username (PK) | password (hashed) | role | created_at
 ```
 
-### Attendance Table
+**events** — Event records
 ```sql
-CREATE TABLE attendance (
-    event_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    user_name TEXT NOT NULL,
-    timestamp TEXT NOT NULL,
-    status TEXT NOT NULL,
-    time_slot TEXT DEFAULT 'morning',
-    PRIMARY KEY (event_id, user_id, time_slot)
-)
+id (PK) | name | date | description
 ```
 
-### Users Table
+**attendance** — QR scan records
 ```sql
-CREATE TABLE users (
-    username TEXT PRIMARY KEY,
-    password TEXT NOT NULL (hashed),
-    full_name TEXT NOT NULL,
-    role TEXT DEFAULT 'scanner',
-    created_at TEXT NOT NULL
-)
+event_id | user_id | user_name | timestamp | status | time_slot
+```
+
+**login_history** — Audit trail
+```sql
+id | username | login_time | logout_time
+```
+
+**scan_history** — Scanner audit trail
+```sql
+id | scanner_username | scanned_user_id | event_id | scan_time
 ```
 
 ---
 
-## 🔐 Authentication & Authorization
+## 🤝 Contributing
 
-**Default Roles:**
-- **Admin**: Full access (user management, QR generation, reports)
-- **Scanner**: Limited access (event scanning, viewing)
+We welcome contributions! Here's how:
 
-**Security Features:**
-- Bcrypt password hashing (12 rounds)
-- Role-based access control (RBAC)
-- Session management
-- Activity logging
+### For Developers
 
----
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** changes: `git commit -m "feat: add amazing feature"`
+4. **Push** to branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
 
-## 📦 Dependencies
+### For Everyone Else
 
-### Core
-- **flet** (0.28.3) — Cross-platform UI framework
-- **sqlite3** — Database engine
+- 🐛 **Report Bugs**: [Create an issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues)
+- 💡 **Suggest Features**: [Start a discussion](https://github.com/Fred727wysi/QR-Attendance-Checker/discussions)
+- 📝 **Improve Docs**: [Submit a PR](https://github.com/Fred727wysi/QR-Attendance-Checker/pulls)
+- ⭐ **Show Support**: Star the repo!
 
-### QR Processing
-- **opencv-python** — Camera and frame processing
-- **pyzbar** — QR code detection
-- **qrcode** — QR code generation
-
-### Utilities
-- **bcrypt** — Password hashing
-- **reportlab** — PDF generation
-- **pillow** — Image processing
-
-See requirements.txt for complete list.
-
----
-
-## 🛠️ Development
-
-### Adding a New View
-
-1. **Create view class** in views
-   ```python
-   from views.base_view import BaseView
-   import flet as ft
-   
-   class MyView(BaseView):
-       def build(self):
-           return ft.View("/my_route", [...])
-   ```
-
-2. **Register in app.py**
-   ```python
-   self.my_view = MyView(self)
-   ```
-
-3. **Add route handler** in `route_change()`
-   ```python
-   elif route == "/my_route":
-       new_view = self.my_view.build()
-   ```
-
-For detailed development instructions, see Development Guide.
+**See Development Guide for technical details**
 
 ---
 
 ## 📋 Roadmap
 
-- [ ] Export to CSV per event
+### Planned Features
+
+- [ ] CSV export per event
 - [ ] Bulk QR code download
-- [ ] Advanced filtering and search
+- [ ] Advanced filtering & search
 - [ ] Multiple time slots (Morning/Afternoon/Lunch)
 - [ ] Attendance categories (Food/Attendance)
-- [ ] Mobile app version (Android/iOS)
+- [ ] Native mobile app (Android/iOS)
 - [ ] Cloud synchronization
 - [ ] Email notifications
+
+### In Progress
+
+- 🔄 Performance optimization
+- 🔄 UI/UX improvements
+
+### Recently Completed
+
+- ✅ Bcrypt password security
+- ✅ REST API server
+- ✅ Activity logging
+- ✅ PDF export
+- ✅ Role-based access control
 
 ---
 
 ## 👥 Contributors
 
-- ----
-- ----
-- ----
-- ----
+<table>
+<tr>
+<td align="center">
+<img src="https://img.shields.io/badge/Open%20Source-Community-brightgreen?style=for-the-badge" />
+<br />
+<b>Community Effort</b>
+<br />
+Built and maintained by developers worldwide
+</td>
+</tr>
+</table>
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the LICENSE file for details.
+**Want to be here?** [Contribute to the project!](https://github.com/Fred727wysi/QR-Attendance-Checker/blob/main/docs/DEVELOPMENT.md)
 
 ---
 
 ## 📞 Support
 
-For issues, questions, or suggestions:
-- **GitHub Issues**: [Create an issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues)
-- **Email**: fred727wysi@gmail.com
-- **Documentation**: See docs/ folder for comprehensive guides
+### Need Help?
+
+| Resource | Link |
+|----------|------|
+| **Documentation** | View Docs |
+| **Getting Started** | Quick Start |
+| **Troubleshooting** | Common Issues |
+| **GitHub Issues** | [Report Bug](https://github.com/Fred727wysi/QR-Attendance-Checker/issues) |
+| **Discussions** | [Ask Question](https://github.com/Fred727wysi/QR-Attendance-Checker/discussions) |
+
+### Contact
+
+- 📧 **Email**: [Create an issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/Fred727wysi/QR-Attendance-Checker/discussions)
+- 🐛 **Report Bug**: [GitHub Issues](https://github.com/Fred727wysi/QR-Attendance-Checker/issues)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the LICENSE file for details.
+
+### What You Can Do
+
+✅ Use for commercial purposes
+✅ Modify and distribute
+✅ Use privately
+✅ Include in larger projects
+
+❌ Hold liable for issues
+❌ Remove license/copyright
 
 ---
 
 ## 🙏 Acknowledgments
 
-Built with ❤️ using [Flet](https://flet.dev) and Python
+Built with ❤️ by a collaborative team using:
 
-**Last Updated**: December 8, 2025
+- [**Flet**](https://flet.dev) — Beautiful cross-platform UI
+- [**Python**](https://www.python.org/) — Powerful language
+- [**OpenCV**](https://opencv.org/) — Computer vision
+- [**SQLite**](https://www.sqlite.org/) — Reliable database
+- [**Bcrypt**](https://github.com/pyca/bcrypt) — Security
+- [**Flask**](https://flask.palletsprojects.com/) — Web framework
 
 ---
 
 <div align="center">
 
-⭐ If you find this project helpful, please consider starring it!
+### Made with 💜 by the Community
 
-[View on GitHub](https://github.com/Fred727wysi/QR-Attendance-Checker)
+⭐ **Please star this repository if you find it helpful!**
+
+[View on GitHub](https://github.com/Fred727wysi/QR-Attendance-Checker) • Documentation • [Report Issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues)
+
+**Last Updated**: December 8, 2025
 
 </div>
