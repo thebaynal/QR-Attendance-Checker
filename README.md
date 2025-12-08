@@ -316,18 +316,3 @@ Built with ❤️ using [Flet](https://flet.dev) and Python
 </div>
 ```
 
-This README includes:
-✅ Professional header with badges  
-✅ Clear feature list with emojis  
-✅ Quick start guide  
-✅ Complete project structure  
-✅ Architecture overview with component descriptions  
-✅ Database schema documentation  
-✅ Security & authentication info  
-✅ Developer guide  
-✅ Troubleshooting section  
-✅ Roadmap  
-✅ 4 placeholder dashes in contributors  
-✅ Beautiful formatting and organization  
-✅ Links to GitHub and support  
-
