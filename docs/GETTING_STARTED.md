@@ -1,6 +1,3 @@
-1. docs/GETTING_STARTED.md
-
-
 # 🚀 Getting Started## Quick Setup (2 minutes)### Prerequisites- Python 3.9+- Camera (for QR scanning)- Virtual environment (recommended)### Installation```bash# Clone and navigategit clone https://github.com/Fred727wysi/QR-Attendance-Checker.gitcd QR-Attendance-Checker# Install dependenciespip install -r [requirements.txt](http://_vscodecontentref_/0)# Initialize databasecd final-project/srcpython init_db.py
 Run Application
 Desktop Only (Laptop):
