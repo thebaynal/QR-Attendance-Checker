@@ -135,11 +135,13 @@ class Database:
                     else:
                         print("Admin user already has 'admin' role")
                 else:
-                    # Create admin user
+                    # Create admin user with properly hashed password
                     print("Creating default admin user")
+                    default_password = "Admin@123"
+                    hashed_password = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
                     cursor.execute(
                         "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
-                        ('admin', 'admin123', 'Administrator', 'admin', datetime.now().isoformat())
+                        ('admin', hashed_password, 'Administrator', 'admin', datetime.now().isoformat())
                     )
                     conn.commit()
                     print("Default admin user created")
