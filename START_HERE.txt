@@ -317,12 +317,4 @@ Multi-Device:
   Terminal 2: python final-project/src/main.py
   Other devices: python final-project/src/main.py (after config)
 
-Then login with your admin credentials!
-
-Questions? Check the guides.
-Bug? Check console output for error messages.
-Need help? Read SECURITY_SETUP_GUIDE.txt
-
-Enjoy your secure attendance system! 🔐
-
 ================================================================================
