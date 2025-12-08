@@ -594,15 +594,29 @@ class Database:
     def record_logout(self, username: str) -> bool:
         """Record a user logout (updates the most recent login)."""
         try:
-            query = """
-            UPDATE login_history 
-            SET logout_time = ? 
-            WHERE username = ? AND logout_time IS NULL
-            ORDER BY login_time DESC
-            LIMIT 1
-            """
-            self._execute(query, (datetime.now().isoformat(), username))
-            return True
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                # First, find the most recent login with no logout
+                cursor.execute(
+                    """SELECT id FROM login_history 
+                       WHERE username = ? AND logout_time IS NULL 
+                       ORDER BY login_time DESC LIMIT 1""",
+                    (username,)
+                )
+                result = cursor.fetchone()
+                
+                if result:
+                    login_id = result[0]
+                    # Now update that specific login record
+                    cursor.execute(
+                        """UPDATE login_history 
+                           SET logout_time = ? 
+                           WHERE id = ?""",
+                        (datetime.now().isoformat(), login_id)
+                    )
+                    conn.commit()
+                    return True
+            return False
         except sqlite3.Error as e:
             print(f"Error recording logout: {e}")
             return False
