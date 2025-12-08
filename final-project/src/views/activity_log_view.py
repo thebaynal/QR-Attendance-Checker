@@ -21,6 +21,45 @@ class ActivityLogView(BaseView):
     def build(self):
         """Build and return the activity log view."""
         try:
+            # Create a container that will hold the tabs
+            tabs_container = ft.Container(expand=True, padding=0)
+            
+            # Store reference to container so we can update it
+            self.tabs_container = tabs_container
+            
+            # Initial build of tabs
+            self._update_tabs(tabs_container)
+            
+            # Create the view
+            view = ft.View(
+                route="/activity_log",
+                controls=[
+                    self.create_app_bar("Activity Log", show_back=True),
+                    tabs_container
+                ]
+            )
+            
+            return view
+        except Exception as e:
+            print(f"Error building activity log view: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            return ft.View(
+                route="/activity_log",
+                controls=[
+                    self.create_app_bar("Activity Log", show_back=True),
+                    ft.Container(
+                        content=ft.Text(f"Error: {str(e)}", color=ft.Colors.RED),
+                        expand=True,
+                        alignment=ft.alignment.center
+                    )
+                ]
+            )
+    
+    def _update_tabs(self, container):
+        """Update the tabs with fresh data."""
+        try:
             # Create tab view for logins and scans
             login_tab = self._build_login_tab()
             scan_tab = self._build_scan_tab()
@@ -43,45 +82,24 @@ class ActivityLogView(BaseView):
                 expand=True
             )
             
-            # Create the view
-            view = ft.View(
-                route="/activity_log",
-                controls=[
-                    self.create_app_bar("Activity Log", show_back=True),
-                    ft.Container(
-                        content=tabs,
-                        expand=True,
-                        padding=0
-                    )
-                ]
-            )
-            
-            return view
+            container.content = tabs
+            container.update()
         except Exception as e:
-            print(f"Error building activity log view: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            return ft.View(
-                route="/activity_log",
-                controls=[
-                    self.create_app_bar("Activity Log", show_back=True),
-                    ft.Container(
-                        content=ft.Text(f"Error: {str(e)}", color=ft.Colors.RED),
-                        expand=True,
-                        alignment=ft.alignment.center
-                    )
-                ]
-            )
+            print(f"Error updating tabs: {e}")
+    
+    def on_view_enter(self):
+        """Called when the view is entered - refresh data."""
+        if hasattr(self, 'tabs_container'):
+            self._update_tabs(self.tabs_container)
     
     def _build_login_tab(self) -> ft.Control:
         """Build the login history tab."""
         try:
-            # Get recent logins
-            logins = self.db.get_recent_logins(limit=50)
+            # Get recent logins - reduced from 50 to 15 for performance
+            logins = self.db.get_recent_logins(limit=15)
             
-            # Create login list
-            login_list = ft.ListView(spacing=8, padding=10, expand=True)
+            # Create login list with lazy loading
+            login_list = ft.ListView(spacing=8, padding=10, expand=True, auto_scroll=False)
             
             if not logins:
                 login_list.controls.append(
@@ -118,11 +136,11 @@ class ActivityLogView(BaseView):
     def _build_scan_tab(self) -> ft.Control:
         """Build the scan history tab."""
         try:
-            # Get recent scans
-            scans = self.db.get_recent_scans(limit=50)
+            # Get recent scans - reduced from 50 to 15 for performance
+            scans = self.db.get_recent_scans(limit=15)
             
-            # Create scan list
-            scan_list = ft.ListView(spacing=8, padding=10, expand=True)
+            # Create scan list with lazy loading
+            scan_list = ft.ListView(spacing=8, padding=10, expand=True, auto_scroll=False)
             
             if not scans:
                 scan_list.controls.append(

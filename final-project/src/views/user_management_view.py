@@ -90,24 +90,33 @@ class UserManagementView(BaseView):
                                         try:
                                             print(f"DEBUG: Confirming deletion of {user_username}")
                                             
-                                            # Close dialog first
-                                            self.page.close(delete_dlg)
+                                            # Delete from database - use delete_user method if available
+                                            if hasattr(self.db, 'delete_user'):
+                                                success = self.db.delete_user(user_username)
+                                            else:
+                                                # Fallback to _execute for API database
+                                                self.db._execute("DELETE FROM users WHERE username = ?", (user_username,))
+                                                success = True
                                             
-                                            # Delete from database
-                                            self.db._execute("DELETE FROM users WHERE username = ?", (user_username,))
-                                            print(f"DEBUG: User deleted from database")
+                                            print(f"DEBUG: Delete result: {success}")
                                             
-                                            # Show success message
-                                            self.show_snackbar(f"✅ User '{user_fullname}' deleted!", ft.Colors.GREEN)
-                                            
-                                            # Reload users list
-                                            load_users()
-                                            
+                                            if success:
+                                                print(f"DEBUG: User deleted from database")
+                                                # Show success message
+                                                self.show_snackbar(f"✅ User '{user_fullname}' deleted!", ft.Colors.GREEN)
+                                                # Reload users list
+                                                load_users()
+                                            else:
+                                                self.show_snackbar(f"❌ Failed to delete user", ft.Colors.RED)
+                                        
                                         except Exception as ex:
                                             print(f"ERROR: {ex}")
                                             import traceback
                                             traceback.print_exc()
                                             self.show_snackbar(f"❌ Error deleting user: {str(ex)}", ft.Colors.RED)
+                                        finally:
+                                            # Close dialog
+                                            self.page.close(delete_dlg)
                                     
                                     def handle_cancel(dlg_event):
                                         print(f"DEBUG: Deletion cancelled")
