@@ -1,3 +1,10 @@
+I see the issue - the documentation section was added at the bottom after all the other content. It needs to be moved up right after the "Quick Start" section for better visibility. Let me reorganize the README properly.
+
+The documentation section should go between "Quick Start" and "Project Structure". Here's the corrected structure:
+
+Replace the entire README with this:
+
+```markdown
 # 🎯 MaScan — QR Attendance Checker
 
 > **Smart attendance management system powered by QR codes** • Built with Flet & Python
@@ -72,6 +79,27 @@ poetry run flet run
 
 ---
 
+## 📚 Documentation
+
+Get started quickly with our comprehensive guides:
+
+| Guide | Purpose |
+|-------|---------|
+| 🚀 Getting Started | Installation, setup, and first run |
+| 🔐 Security Guide | Authentication, passwords, and best practices |
+| 📱 Phone Setup | API server and WiFi configuration for phones |
+| 📦 APK Build | Building and deploying to Android |
+| 🔧 Troubleshooting | Common issues and solutions |
+| 👨‍💻 Development | Contributing guide and architecture |
+
+**Quick Links:**
+- 🆘 Need help? Start with Getting Started
+- 🐛 Having issues? Check Troubleshooting
+- 📱 Want to deploy to phone? See Phone Setup
+- 💻 Contributing code? Read Development
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -100,6 +128,7 @@ QR-Attendance-Checker/
 │   │       ├── activity_log_view.py    # Audit trail
 │   │       └── ui_utils.py         # UI animations & styles
 │   └── pyproject.toml              # Project metadata
+├── docs/                           # Documentation guides
 ├── requirements.txt                # Python dependencies
 └── README.md                       # This file
 ```
@@ -244,22 +273,7 @@ See requirements.txt for complete list.
        new_view = self.my_view.build()
    ```
 
----
-
-## 🚨 Troubleshooting
-
-### Camera Not Working
-- Ensure camera permissions are granted
-- Check `opencv-python` and `pyzbar` are installed
-- Try: `pip install --upgrade opencv-python pyzbar`
-
-### Database Issues
-- Delete mascan_attendance.db and reinitialize
-- Run: `python init_db.py`
-
-### Import Errors
-- Verify you're in the correct directory
-- Install dependencies: `pip install -r requirements.txt`
+For detailed development instructions, see Development Guide.
 
 ---
 
@@ -296,6 +310,7 @@ This project is licensed under the MIT License — see the LICENSE file for deta
 For issues, questions, or suggestions:
 - **GitHub Issues**: [Create an issue](https://github.com/Fred727wysi/QR-Attendance-Checker/issues)
 - **Email**: fred727wysi@gmail.com
+- **Documentation**: See docs/ folder for comprehensive guides
 
 ---
 
@@ -314,5 +329,3 @@ Built with ❤️ using [Flet](https://flet.dev) and Python
 [View on GitHub](https://github.com/Fred727wysi/QR-Attendance-Checker)
 
 </div>
-```
-
