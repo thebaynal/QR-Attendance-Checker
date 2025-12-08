@@ -1,10 +1,3 @@
-I'll create a beautiful, professional README for your project. Let me read the current one first and then update it: 
-
-Read [](file:///c%3A/Users/Fred/Desktop/QR-Attendance-Checker/README.md)
-
-Now I'll create a beautiful, modern README:
-
-```markdown
 # 🎯 MaScan — QR Attendance Checker
 
 > **Smart attendance management system powered by QR codes** • Built with Flet & Python
