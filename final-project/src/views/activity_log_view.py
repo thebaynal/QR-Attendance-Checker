@@ -87,6 +87,14 @@ class ActivityLogView(BaseView):
         except Exception as e:
             print(f"Error updating tabs: {e}")
     
+    def refresh_data(self):
+        """Refresh activity log data (called by sync service)."""
+        try:
+            if hasattr(self, 'tabs_container'):
+                self._update_tabs(self.tabs_container)
+        except Exception as e:
+            print(f"Error refreshing activity log: {e}")
+    
     def on_view_enter(self):
         """Called when the view is entered - refresh data."""
         if hasattr(self, 'tabs_container'):

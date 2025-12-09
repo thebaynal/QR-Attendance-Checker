@@ -402,8 +402,8 @@ class MaScanApp:
                 # Refresh scan view and activity log
                 if hasattr(self.scan_view, '_refresh_attendance'):
                     self.scan_view._refresh_attendance()
-                if hasattr(self.activity_log_view, '_update_tabs'):
-                    self.activity_log_view._update_tabs()
+                if hasattr(self.activity_log_view, 'refresh_data'):
+                    self.activity_log_view.refresh_data()
             
             elif change_type == 'events_updated':
                 # Refresh event view
@@ -412,8 +412,8 @@ class MaScanApp:
             
             elif change_type == 'logins_updated':
                 # Refresh activity log
-                if hasattr(self.activity_log_view, '_update_tabs'):
-                    self.activity_log_view._update_tabs()
+                if hasattr(self.activity_log_view, 'refresh_data'):
+                    self.activity_log_view.refresh_data()
             
             # Update page to reflect changes
             try:
