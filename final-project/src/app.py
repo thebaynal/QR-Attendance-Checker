@@ -87,7 +87,15 @@ class MaScanApp:
             elif route == "/home":
                 new_view = self.home_view.build() if self.current_user else self.login_view.build()
             elif route == "/create_event":
-                new_view = self.create_event_view.build() if self.current_user else self.login_view.build()
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can create events", ft.Colors.RED)
+                        new_view = self.home_view.build()
+                    else:
+                        new_view = self.create_event_view.build()
             elif route.startswith("/event/"):
                 event_id = route.split("/")[-1]
                 new_view = self.event_view.build(event_id) if self.current_user else self.login_view.build()

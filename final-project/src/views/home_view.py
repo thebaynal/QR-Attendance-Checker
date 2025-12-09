@@ -14,6 +14,11 @@ class HomeView(BaseView):
         """Build and return the premium styled home view."""
         try:
             events = self.db.get_all_events()
+            
+            # Get current user role
+            current_username = self.app.current_user
+            current_user_role = self.db.get_user_role(current_username) if current_username else 'user'
+            is_admin = current_user_role == 'admin'
 
             def parse_event_date(event_date_str: str):
                 """Parse event date string handling multiple formats."""
@@ -540,7 +545,7 @@ class HomeView(BaseView):
                                         elevation=4,
                                         shadow_color=ft.Colors.with_opacity(0.25, PRIMARY_COLOR),
                                     ),
-                                ),
+                                ) if is_admin else ft.Container(width=0)
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
