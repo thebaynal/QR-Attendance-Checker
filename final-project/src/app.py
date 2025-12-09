@@ -12,6 +12,7 @@ from views.scan_view import ScanView
 from views.create_event_view import CreateEventView
 from views.qr_generator_view import QRGeneratorView
 from views.user_management_view import UserManagementView
+from views.activity_log_view import ActivityLogView
 
 
 class MaScanApp:
@@ -39,6 +40,7 @@ class MaScanApp:
         self.create_event_view = CreateEventView(self)
         self.qr_generator_view = QRGeneratorView(self)
         self.user_management_view = UserManagementView(self)
+        self.activity_log_view = ActivityLogView(self)
         
         # Setup routing
         self.page.on_route_change = self.route_change
@@ -104,6 +106,8 @@ class MaScanApp:
                         new_view = self.home_view.build() if self.current_user else self.login_view.build()
                     else:
                         new_view = self.user_management_view.build()
+            elif route == "/activity_log":
+                new_view = self.activity_log_view.build() if self.current_user else self.login_view.build()
             else:
                 print(f"WARNING: Unknown route {route}, showing home view")
                 new_view = self.home_view.build() if self.current_user else self.login_view.build()
@@ -200,11 +204,11 @@ class MaScanApp:
         def on_home_click(e):
             self.navigate_home()
         
-        def on_qr_click(e):
-            self.navigate_qr_generator()
-        
         def on_user_mgmt_click(e):
             self.navigate_user_management()
+        
+        def on_activity_log_click(e):
+            self.navigate_activity_log()
         
         def on_logout_click(e):
             self.logout_handler()
@@ -256,16 +260,15 @@ class MaScanApp:
             
             ft.Container(height=12),
             
-            # Navigation Items
-            self._create_nav_item(
-                icon=ft.Icons.HOME_ROUNDED,
-                title="Home",
-                on_click=on_home_click,
-            ),
             self._create_nav_item(
                 icon=ft.Icons.QR_CODE_2,
                 title="Generate QR Codes",
                 on_click=on_qr_click,
+            ),
+            self._create_nav_item(
+                icon=ft.Icons.HISTORY,
+                title="Activity Log",
+                on_click=on_activity_log_click,
             ),
         ]
         
@@ -367,16 +370,6 @@ class MaScanApp:
                 pass
         self.page.go("/home")
 
-    def navigate_qr_generator(self):
-        """Navigate to QR generator and close drawer."""
-        if self.drawer:
-            try:
-                self.drawer.open = False
-                self.drawer.update()
-            except:
-                pass
-        self.page.go("/qr_generator")
-
     def navigate_user_management(self):
         """Navigate to user management and close drawer."""
         if self.drawer:
@@ -386,6 +379,16 @@ class MaScanApp:
             except:
                 pass
         self.page.go("/user_management")
+
+    def navigate_activity_log(self):
+        """Navigate to activity log and close drawer."""
+        if self.drawer:
+            try:
+                self.drawer.open = False
+                self.drawer.update()
+            except:
+                pass
+        self.page.go("/activity_log")
 
     def logout_handler(self):
         """Handle logout and close drawer."""

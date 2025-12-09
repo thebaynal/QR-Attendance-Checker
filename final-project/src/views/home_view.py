@@ -567,8 +567,8 @@ class HomeView(BaseView):
                                                         options=[
                                                             ft.dropdown.Option("date_desc", "Newest First"),
                                                             ft.dropdown.Option("date_asc", "Oldest First"),
-                                                            ft.dropdown.Option("name_asc", "A ΓåÆ Z"),
-                                                            ft.dropdown.Option("name_desc", "Z ΓåÆ A"),
+                                                            ft.dropdown.Option("name_asc", "A - Z"),
+                                                            ft.dropdown.Option("name_desc", "Z - A"),
                                                         ],
                                                         text_size=14,
                                                         width=140,
@@ -675,12 +675,20 @@ class HomeView(BaseView):
                 empty_subtitle = "Try changing the filter" if events else "Create your first event to start tracking attendance"
                 
                 event_list = ft.Container(
-                    content=self.create_empty_state(
-                        icon=ft.Icons.EVENT_BUSY_OUTLINED,
-                        title=empty_message,
-                        subtitle=empty_subtitle,
+                    content=ft.Column(
+                        [
+                            self.create_empty_state(
+                                icon=ft.Icons.EVENT_BUSY_OUTLINED,
+                                title=empty_message,
+                                subtitle=empty_subtitle,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        expand=True,
                     ),
                     expand=True,
+                    alignment=ft.alignment.center,
                 )
 
             return ft.View(
