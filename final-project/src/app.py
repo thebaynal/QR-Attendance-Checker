@@ -95,7 +95,15 @@ class MaScanApp:
                 event_id = route.split("/")[-1]
                 new_view = self.scan_view.build(event_id) if self.current_user else self.login_view.build()
             elif route == "/qr_generator":
-                new_view = self.qr_generator_view.build() if self.current_user else self.login_view.build()
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can generate QR codes", ft.Colors.RED)
+                        new_view = self.home_view.build()
+                    else:
+                        new_view = self.qr_generator_view.build()
             elif route == "/user_management":
                 if not self.current_user:
                     new_view = self.login_view.build()
@@ -107,7 +115,15 @@ class MaScanApp:
                     else:
                         new_view = self.user_management_view.build()
             elif route == "/activity_log":
-                new_view = self.activity_log_view.build() if self.current_user else self.login_view.build()
+                if not self.current_user:
+                    new_view = self.login_view.build()
+                else:
+                    user_role = self.db.get_user_role(self.current_user)
+                    if user_role != 'admin':
+                        self.show_snackbar("Only admins can access activity log", ft.Colors.RED)
+                        new_view = self.home_view.build()
+                    else:
+                        new_view = self.activity_log_view.build()
             else:
                 print(f"WARNING: Unknown route {route}, showing home view")
                 new_view = self.home_view.build() if self.current_user else self.login_view.build()
@@ -264,18 +280,28 @@ class MaScanApp:
             ft.Container(height=12),
             
             self._create_nav_item(
-                icon=ft.Icons.QR_CODE_2,
-                title="Generate QR Codes",
-                on_click=on_qr_click,
-            ),
-            self._create_nav_item(
-                icon=ft.Icons.HISTORY,
-                title="Activity Log",
-                on_click=on_activity_log_click,
+                icon=ft.Icons.HOME_ROUNDED,
+                title="Home",
+                on_click=on_home_click,
             ),
         ]
         
-        # Add user management only for admin users
+        # Add QR generator and activity log only for admin users
+        if user_role == 'admin':
+            menu_items.extend([
+                self._create_nav_item(
+                    icon=ft.Icons.QR_CODE_2,
+                    title="Generate QR Codes",
+                    on_click=on_qr_click,
+                ),
+                self._create_nav_item(
+                    icon=ft.Icons.HISTORY,
+                    title="Activity Log",
+                    on_click=on_activity_log_click,
+                ),
+            ])
+        
+        # Add user management section if admin
         print(f"DEBUG: current_user={self.current_user}, user_role={user_role}")
         
         if user_role == 'admin':
