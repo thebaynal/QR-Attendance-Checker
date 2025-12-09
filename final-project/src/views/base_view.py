@@ -45,3 +45,34 @@ class BaseView:
             ft.AppBar: The constructed app bar
         """
         return self.app.create_app_bar(title, show_back)
+    
+    def create_empty_state(self, icon: str, title: str, subtitle: str):
+        """Create an empty state container.
+        
+        Args:
+            icon: Icon to display (ft.Icons.*)
+            title: Title text
+            subtitle: Subtitle text
+            
+        Returns:
+            ft.Container: The constructed empty state container
+        """
+        return ft.Column(
+            [
+                ft.Icon(icon, size=80, color=ft.Colors.GREY_400),
+                ft.Text(
+                    title,
+                    size=18,
+                    weight=ft.FontWeight.W_600,
+                    color=ft.Colors.GREY_700,
+                ),
+                ft.Text(
+                    subtitle,
+                    size=14,
+                    color=ft.Colors.GREY_500,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=16,
+        )

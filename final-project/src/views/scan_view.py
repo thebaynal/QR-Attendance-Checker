@@ -24,6 +24,19 @@ class ScanView(BaseView):
             self.page.go("/home")
             return ft.View("/", [ft.Container()])
         
+        # Check if event is in the past
+        try:
+            event_date = datetime.strptime(event['date'], '%Y-%m-%d').date()
+            today = datetime.now().date()
+            if event_date < today:
+                # Event is in the past, prevent scanning
+                self.show_snackbar(f"Cannot scan for past event ({event['date']})", ft.Colors.RED)
+                self.page.go("/home")
+                return ft.View("/", [ft.Container()])
+        except (ValueError, KeyError):
+            # If date parsing fails, allow scanning (legacy data handling)
+            pass
+        
         # Selected time slot state
         selected_time_slot = ["morning"]  # Default to morning
         
@@ -355,6 +368,28 @@ class ScanView(BaseView):
             """Process QR code scan with new database structure."""
             def _process_in_background():
                 try:
+                    # Double-check if event is still valid (not in past)
+                    current_event = self.db.get_event_by_id(event_id)
+                    if current_event:
+                        try:
+                            event_date = datetime.strptime(current_event['date'], '%Y-%m-%d').date()
+                            today = datetime.now().date()
+                            if event_date < today:
+                                scan_result_container.bgcolor = ft.Colors.RED_100
+                                scan_result_container.content.value = "❌ This event is in the past"
+                                scan_result_container.content.color = ft.Colors.RED_700
+                                scan_result_container.visible = True
+                                scan_result_container.update()
+                                
+                                self.show_snackbar("Cannot scan for past events", ft.Colors.RED)
+                                
+                                time.sleep(2)
+                                scan_result_container.visible = False
+                                scan_result_container.update()
+                                return
+                        except (ValueError, KeyError):
+                            pass
+                    
                     # Parse QR data (format: school_id|name)
                     parts = qr_data.split('|')
                     if len(parts) < 1:
