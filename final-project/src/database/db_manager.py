@@ -594,6 +594,34 @@ class Database:
                 'section': result[3]
             }
         return None
+    
+    def create_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None) -> bool:
+        """Create a new student with QR code."""
+        try:
+            query = """
+            INSERT INTO students_qrcodes 
+            (school_id, name, qr_data, qr_data_encoded, csv_data, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+            self._execute(query, (school_id, name, qr_data, qr_data_encoded, csv_data, datetime.now().isoformat()))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error creating student: {e}")
+            return False
+    
+    def update_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None) -> bool:
+        """Update an existing student."""
+        try:
+            query = """
+            UPDATE students_qrcodes 
+            SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?
+            WHERE school_id = ?
+            """
+            self._execute(query, (name, qr_data, qr_data_encoded, csv_data, school_id))
+            return True
+        except sqlite3.Error as e:
+            print(f"Error updating student: {e}")
+            return False
 
     # Login and Activity Tracking Methods
     def record_login(self, username: str) -> bool:

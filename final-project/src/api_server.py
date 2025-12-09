@@ -268,6 +268,78 @@ def get_student(school_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/students', methods=['POST'])
+@require_api_key
+def create_student():
+    """Create or update student."""
+    try:
+        data = request.get_json()
+        school_id = data.get('school_id')
+        name = data.get('name')
+        qr_data = data.get('qr_data')
+        qr_data_encoded = data.get('qr_data_encoded')
+        csv_data = data.get('csv_data')
+        
+        if not all([school_id, name, qr_data, qr_data_encoded]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Ensure table exists
+        db._execute("""
+        CREATE TABLE IF NOT EXISTS students_qrcodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            school_id TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            qr_data TEXT NOT NULL UNIQUE,
+            qr_data_encoded TEXT NOT NULL,
+            csv_data TEXT,
+            created_at TEXT NOT NULL
+        )
+        """)
+        
+        # Check if student exists
+        existing = db._execute("SELECT id FROM students_qrcodes WHERE school_id = ?", (school_id,), fetch_one=True)
+        
+        if existing:
+            # Update
+            db._execute("""
+            UPDATE students_qrcodes 
+            SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?
+            WHERE school_id = ?
+            """, (name, qr_data, qr_data_encoded, csv_data, school_id))
+        else:
+            # Insert
+            from datetime import datetime
+            db._execute("""
+            INSERT INTO students_qrcodes 
+            (school_id, name, qr_data, qr_data_encoded, csv_data, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, (school_id, name, qr_data, qr_data_encoded, csv_data, datetime.now().isoformat()))
+        
+        return jsonify({'success': True, 'message': 'Student saved', 'school_id': school_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/students/<school_id>', methods=['POST'])
+@require_api_key
+def update_student(school_id):
+    """Update student."""
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        qr_data = data.get('qr_data')
+        qr_data_encoded = data.get('qr_data_encoded')
+        csv_data = data.get('csv_data')
+        
+        db._execute("""
+        UPDATE students_qrcodes 
+        SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?
+        WHERE school_id = ?
+        """, (name, qr_data, qr_data_encoded, csv_data, school_id))
+        
+        return jsonify({'success': True, 'message': 'Student updated'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/attendance-by-section/<event_id>', methods=['GET'])
 @require_api_key
 def get_attendance_by_section(event_id):

@@ -253,61 +253,40 @@ class QRGeneratorView(BaseView):
                         # Close dialog first
                         self.page.close(dlg)
                         
-                        # Add students_qrcodes table if it doesn't exist
-                        self.db._execute("""
-                        CREATE TABLE IF NOT EXISTS students_qrcodes (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            school_id TEXT NOT NULL UNIQUE,
-                            name TEXT NOT NULL,
-                            qr_data TEXT NOT NULL UNIQUE,
-                            qr_data_encoded TEXT NOT NULL,
-                            csv_data TEXT,
-                            created_at TEXT NOT NULL,
-                            FOREIGN KEY (school_id) REFERENCES attendance(user_id)
-                        )
-                        """)
-                        
                         saved_count = 0
                         failed_count = 0
                         
                         for student in students_data:
                             try:
                                 # Check if student already exists
-                                check_query = "SELECT id FROM students_qrcodes WHERE school_id = ?"
-                                existing = self.db._execute(check_query, (student['school_id'],), fetch_one=True)
+                                existing = self.db.get_student_by_id(student['school_id'])
+                                
+                                # Find the base64 encoded version
+                                b64_encoded = next((b64 for data, b64 in self.qr_codes_data if data == student['qr_data']), None)
                                 
                                 if existing:
                                     # Update existing student
-                                    update_query = """
-                                    UPDATE students_qrcodes 
-                                    SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?
-                                    WHERE school_id = ?
-                                    """
-                                    self.db._execute(update_query, (
-                                        student['name'],
-                                        student['qr_data'],
-                                        # Find the base64 encoded version
-                                        next(b64 for data, b64 in self.qr_codes_data if data == student['qr_data']),
-                                        str(student['row_data']),
-                                        student['school_id']
-                                    ))
-                                else:
-                                    # Insert new student
-                                    insert_query = """
-                                    INSERT INTO students_qrcodes 
-                                    (school_id, name, qr_data, qr_data_encoded, csv_data, created_at)
-                                    VALUES (?, ?, ?, ?, ?, ?)
-                                    """
-                                    self.db._execute(insert_query, (
+                                    success = self.db.update_student(
                                         student['school_id'],
                                         student['name'],
                                         student['qr_data'],
-                                        # Find the base64 encoded version
-                                        next(b64 for data, b64 in self.qr_codes_data if data == student['qr_data']),
-                                        str(student['row_data']),
-                                        datetime.now().isoformat()
-                                    ))
-                                saved_count += 1
+                                        b64_encoded,
+                                        str(student['row_data'])
+                                    )
+                                else:
+                                    # Create new student
+                                    success = self.db.create_student(
+                                        student['school_id'],
+                                        student['name'],
+                                        student['qr_data'],
+                                        b64_encoded,
+                                        str(student['row_data'])
+                                    )
+                                
+                                if success:
+                                    saved_count += 1
+                                else:
+                                    failed_count += 1
                             except Exception as ex:
                                 print(f"Error saving student {student.get('school_id')}: {ex}")
                                 failed_count += 1
