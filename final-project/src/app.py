@@ -5,6 +5,8 @@ import flet as ft
 import time
 from config.constants import *
 from database.db_manager import Database
+from api_db_manager import APIDatabase
+from remote_config import API_BASE_URL, API_KEY, USE_REMOTE_DATABASE
 from views.login_view import LoginView
 from views.home_view import HomeView
 from views.event_view import EventView
@@ -20,7 +22,15 @@ class MaScanApp:
     
     def __init__(self, page: ft.Page):
         self.page = page
-        self.db = Database(DATABASE_NAME)
+        
+        # Initialize database - use remote API if configured
+        if USE_REMOTE_DATABASE:
+            print(f"DEBUG: Using REMOTE database at {API_BASE_URL}")
+            self.db = APIDatabase(API_BASE_URL, API_KEY)
+        else:
+            print(f"DEBUG: Using LOCAL database")
+            self.db = Database(DATABASE_NAME)
+        
         self.current_user = None
         self.drawer = None
         self.qr_scanner = None
