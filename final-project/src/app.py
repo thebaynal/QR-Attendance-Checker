@@ -407,6 +407,10 @@ class MaScanApp:
 
     def logout(self):
         """Handle logout."""
+        # Record logout if user is logged in
+        if self.current_user:
+            self.db.record_logout(self.current_user)
+        
         # Stop camera if running
         if self.qr_scanner and self.qr_scanner.is_running:
             self.qr_scanner.stop()
