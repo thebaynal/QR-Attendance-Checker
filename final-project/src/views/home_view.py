@@ -97,7 +97,7 @@ class HomeView(BaseView):
                 self.page.update()
 
             def handle_scan_click(event_id: str, event_date: str, event_name: str):
-                """Handle scan button click with upcoming event check."""
+                """Handle scan button click with past/future event checks."""
                 if is_event_upcoming(event_date):
                     dialog = ft.AlertDialog(
                         modal=True,
@@ -116,7 +116,7 @@ class HomeView(BaseView):
                         content=ft.Container(
                             content=ft.Text(
                                 f"The event '{event_name}' is scheduled for {event_date}.\n\n"
-                                "Attendance scanning is only available on or after the event date.",
+                                "Attendance scanning is only available on the event date.",
                                 size=15,
                                 color=ft.Colors.GREY_700,
                                 weight=ft.FontWeight.W_400,
@@ -135,7 +135,46 @@ class HomeView(BaseView):
                         actions_alignment=ft.MainAxisAlignment.END,
                     )
                     self.page.open(dialog)
+                elif not is_event_today(event_date):
+                    # Event is in the past
+                    dialog = ft.AlertDialog(
+                        modal=True,
+                        title=ft.Row(
+                            [
+                                ft.Icon(ft.Icons.BLOCK, color=ft.Colors.RED_600, size=28),
+                                ft.Text(
+                                    "Event Closed", 
+                                    weight=ft.FontWeight.BOLD, 
+                                    size=19,
+                                    color=ft.Colors.GREY_900,
+                                ),
+                            ],
+                            spacing=10,
+                        ),
+                        content=ft.Container(
+                            content=ft.Text(
+                                f"The event '{event_name}' ({event_date}) has already passed.\n\n"
+                                "Attendance scanning is no longer available for past events.",
+                                size=15,
+                                color=ft.Colors.GREY_700,
+                                weight=ft.FontWeight.W_400,
+                            ),
+                            padding=ft.padding.only(top=10),
+                        ),
+                        actions=[
+                            ft.TextButton(
+                                "Understood",
+                                on_click=lambda e: self.page.close(dialog),
+                                style=ft.ButtonStyle(
+                                    color=PRIMARY_COLOR,
+                                ),
+                            ),
+                        ],
+                        actions_alignment=ft.MainAxisAlignment.END,
+                    )
+                    self.page.open(dialog)
                 else:
+                    # Event is today, allow scanning
                     self.page.go(f"/scan/{event_id}")
 
             def delete_event_handler(event_id: str, event_name: str):
