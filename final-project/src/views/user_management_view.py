@@ -70,8 +70,9 @@ class UserManagementView(BaseView):
                 try:
                     print("DEBUG: Loading users")
                     users_list.controls.clear()
-                    query = "SELECT username, full_name, role FROM users ORDER BY username"
-                    results = self.db._execute(query, fetch_all=True)
+                    
+                    # Get users using get_all_users method
+                    results = self.db.get_all_users()
                     print(f"DEBUG: Found {len(results) if results else 0} users")
                     
                     if results:

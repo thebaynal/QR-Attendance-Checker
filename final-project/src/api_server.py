@@ -146,7 +146,14 @@ def get_users():
     """Get all users."""
     try:
         users = db.get_all_users()
-        return jsonify(users), 200
+        # Convert list of tuples to dict format
+        users_dict = {}
+        for username, full_name, role in users:
+            users_dict[username] = {
+                'full_name': full_name,
+                'role': role
+            }
+        return jsonify(users_dict), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

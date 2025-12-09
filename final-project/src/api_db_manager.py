@@ -158,10 +158,19 @@ class APIDatabase:
         result = self._make_request('POST', '/api/users', data)
         return result is not None
     
-    def get_all_users(self) -> Dict:
+    def get_all_users(self) -> List:
         """Get all users via API."""
         result = self._make_request('GET', '/api/users')
-        return result if result else {}
+        if result:
+            # Convert dict format to list of tuples (username, full_name, role)
+            users = []
+            for username, user_data in result.items():
+                if isinstance(user_data, dict):
+                    users.append((username, user_data.get('full_name', username), user_data.get('role', 'scanner')))
+                else:
+                    users.append((username, user_data, 'scanner'))
+            return users
+        return []
     
     def delete_user(self, username: str) -> bool:
         """Delete user via API."""

@@ -348,6 +348,21 @@ class Database:
         result = self._execute(query, (username,), fetch_one=True)
         return result[0] if result else None
     
+    def get_all_users(self):
+        """Get all users from database."""
+        try:
+            query = "SELECT username, full_name, role FROM users ORDER BY username"
+            with sqlite3.connect(self.db_name) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query)
+                results = cursor.fetchall()
+                # Return as list of tuples for consistency
+                return [(row['username'], row['full_name'], row['role']) for row in results]
+        except sqlite3.Error as e:
+            print(f"Database error getting users: {e}")
+            return []
+    
     def create_user(self, username: str, password: str, full_name: str, role: str = 'scanner') -> bool:
         """Create a new user account with specified role."""
         # Check if user already exists

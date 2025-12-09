@@ -2,9 +2,9 @@
 QR-ATTENDANCE-CHECKER - DEVELOPMENT LOG
 ================================================================================
 Project: QR Attendance System for Schools/Organizations
-Owner: thebaynal
+Owner: @thebaynal, @macmac-12, @JohnRaymondAlba, @Fred727wysi
 Repository: QR-Attendance-Checker
-Start Date: December 7, 2025
+Start Date: December 4, 2025
 
 ================================================================================
 PROJECT OVERVIEW
