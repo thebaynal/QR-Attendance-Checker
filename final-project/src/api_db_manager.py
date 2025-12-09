@@ -193,25 +193,31 @@ class APIDatabase:
         result = self._make_request('GET', f'/api/students/{school_id}')
         return result if result else None
     
-    def create_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None) -> bool:
+    def create_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None, last_name: str = None, first_name: str = None, middle_initial: str = None) -> bool:
         """Create or update student via API."""
         data = {
             "school_id": school_id,
             "name": name,
             "qr_data": qr_data,
             "qr_data_encoded": qr_data_encoded,
-            "csv_data": csv_data
+            "csv_data": csv_data,
+            "last_name": last_name,
+            "first_name": first_name,
+            "middle_initial": middle_initial
         }
         result = self._make_request('POST', '/api/students', data)
         return result is not None
     
-    def update_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None) -> bool:
+    def update_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None, last_name: str = None, first_name: str = None, middle_initial: str = None) -> bool:
         """Update student via API."""
         data = {
             "name": name,
             "qr_data": qr_data,
             "qr_data_encoded": qr_data_encoded,
-            "csv_data": csv_data
+            "csv_data": csv_data,
+            "last_name": last_name,
+            "first_name": first_name,
+            "middle_initial": middle_initial
         }
         result = self._make_request('POST', f'/api/students/{school_id}', data)
         return result is not None

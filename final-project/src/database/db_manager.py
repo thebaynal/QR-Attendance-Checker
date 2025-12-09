@@ -420,6 +420,9 @@ class Database:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             school_id TEXT NOT NULL UNIQUE,
             name TEXT NOT NULL,
+            last_name TEXT,
+            first_name TEXT,
+            middle_initial TEXT,
             year_level TEXT,
             section TEXT,
             qr_data TEXT NOT NULL UNIQUE,
@@ -456,6 +459,9 @@ class Database:
         # Ensure required columns exist (migration)
         self._add_column_if_not_exists('students_qrcodes', 'year_level', 'TEXT')
         self._add_column_if_not_exists('students_qrcodes', 'section', 'TEXT')
+        self._add_column_if_not_exists('students_qrcodes', 'last_name', 'TEXT')
+        self._add_column_if_not_exists('students_qrcodes', 'first_name', 'TEXT')
+        self._add_column_if_not_exists('students_qrcodes', 'middle_initial', 'TEXT')
         self._add_column_if_not_exists('attendance_timeslots', 'morning_time', 'TEXT')
         self._add_column_if_not_exists('attendance_timeslots', 'morning_status', "TEXT DEFAULT 'Absent'")
         self._add_column_if_not_exists('attendance_timeslots', 'lunch_time', 'TEXT')
@@ -595,29 +601,29 @@ class Database:
             }
         return None
     
-    def create_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None) -> bool:
+    def create_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None, last_name: str = None, first_name: str = None, middle_initial: str = None) -> bool:
         """Create a new student with QR code."""
         try:
             query = """
             INSERT INTO students_qrcodes 
-            (school_id, name, qr_data, qr_data_encoded, csv_data, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (school_id, name, qr_data, qr_data_encoded, csv_data, last_name, first_name, middle_initial, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
-            self._execute(query, (school_id, name, qr_data, qr_data_encoded, csv_data, datetime.now().isoformat()))
+            self._execute(query, (school_id, name, qr_data, qr_data_encoded, csv_data, last_name, first_name, middle_initial, datetime.now().isoformat()))
             return True
         except sqlite3.Error as e:
             print(f"Error creating student: {e}")
             return False
     
-    def update_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None) -> bool:
+    def update_student(self, school_id: str, name: str, qr_data: str, qr_data_encoded: str, csv_data: str = None, last_name: str = None, first_name: str = None, middle_initial: str = None) -> bool:
         """Update an existing student."""
         try:
             query = """
             UPDATE students_qrcodes 
-            SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?
+            SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?, last_name = ?, first_name = ?, middle_initial = ?
             WHERE school_id = ?
             """
-            self._execute(query, (name, qr_data, qr_data_encoded, csv_data, school_id))
+            self._execute(query, (name, qr_data, qr_data_encoded, csv_data, last_name, first_name, middle_initial, school_id))
             return True
         except sqlite3.Error as e:
             print(f"Error updating student: {e}")

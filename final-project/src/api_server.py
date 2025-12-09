@@ -279,22 +279,36 @@ def create_student():
         qr_data = data.get('qr_data')
         qr_data_encoded = data.get('qr_data_encoded')
         csv_data = data.get('csv_data')
+        last_name = data.get('last_name')
+        first_name = data.get('first_name')
+        middle_initial = data.get('middle_initial')
         
         if not all([school_id, name, qr_data, qr_data_encoded]):
             return jsonify({'error': 'Missing required fields'}), 400
         
-        # Ensure table exists
+        # Ensure table exists with new columns
         db._execute("""
         CREATE TABLE IF NOT EXISTS students_qrcodes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             school_id TEXT NOT NULL UNIQUE,
             name TEXT NOT NULL,
+            last_name TEXT,
+            first_name TEXT,
+            middle_initial TEXT,
             qr_data TEXT NOT NULL UNIQUE,
             qr_data_encoded TEXT NOT NULL,
             csv_data TEXT,
             created_at TEXT NOT NULL
         )
         """)
+        
+        # Ensure new columns exist (migration)
+        try:
+            db._add_column_if_not_exists('students_qrcodes', 'last_name', 'TEXT')
+            db._add_column_if_not_exists('students_qrcodes', 'first_name', 'TEXT')
+            db._add_column_if_not_exists('students_qrcodes', 'middle_initial', 'TEXT')
+        except:
+            pass
         
         # Check if student exists
         existing = db._execute("SELECT id FROM students_qrcodes WHERE school_id = ?", (school_id,), fetch_one=True)
@@ -303,17 +317,17 @@ def create_student():
             # Update
             db._execute("""
             UPDATE students_qrcodes 
-            SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?
+            SET name = ?, qr_data = ?, qr_data_encoded = ?, csv_data = ?, last_name = ?, first_name = ?, middle_initial = ?
             WHERE school_id = ?
-            """, (name, qr_data, qr_data_encoded, csv_data, school_id))
+            """, (name, qr_data, qr_data_encoded, csv_data, last_name, first_name, middle_initial, school_id))
         else:
             # Insert
             from datetime import datetime
             db._execute("""
             INSERT INTO students_qrcodes 
-            (school_id, name, qr_data, qr_data_encoded, csv_data, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """, (school_id, name, qr_data, qr_data_encoded, csv_data, datetime.now().isoformat()))
+            (school_id, name, qr_data, qr_data_encoded, csv_data, last_name, first_name, middle_initial, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (school_id, name, qr_data, qr_data_encoded, csv_data, last_name, first_name, middle_initial, datetime.now().isoformat()))
         
         return jsonify({'success': True, 'message': 'Student saved', 'school_id': school_id}), 201
     except Exception as e:

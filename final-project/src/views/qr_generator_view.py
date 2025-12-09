@@ -22,6 +22,29 @@ class QRGeneratorView(BaseView):
         self.db = app.db
         self.qr_codes_data = []
     
+    def _extract_name_from_csv_data(self, row_data: dict) -> tuple:
+        """Extract name components from CSV row data.
+        
+        Args:
+            row_data: Dictionary from CSV with keys like 'Last Name', 'First Name', 'Middle Name'
+        
+        Returns:
+            Tuple of (formatted_name, last_name, first_name, middle_initial)
+        """
+        last_name = row_data.get('Last Name', '').strip()
+        first_name = row_data.get('First Name', '').strip()
+        middle_name = row_data.get('Middle Name', '').strip()
+        
+        # Get middle initial from middle name
+        middle_initial = middle_name[0].upper() if middle_name else ""
+        
+        # Format as "Last, First, M."
+        formatted_name = f"{last_name}, {first_name}"
+        if middle_initial:
+            formatted_name += f", {middle_initial}."
+        
+        return formatted_name, last_name, first_name, middle_initial
+    
     def build(self):
         """Build and return the QR generator view."""
         try:
@@ -80,18 +103,17 @@ class QRGeneratorView(BaseView):
                         
                         # Generate QR code for each row
                         for idx, row in enumerate(rows, 1):
-                            # Use first column value as school ID
-                            school_id = list(row.values())[0].strip() if row else None
+                            # Use school ID from 'Student Number' column
+                            school_id = row.get('Student Number', '').strip()
                             
                             if not school_id:
                                 continue
                             
-                            # Get student name from second column if available
-                            row_values = list(row.values())
-                            student_name = row_values[1].strip() if len(row_values) > 1 else "N/A"
+                            # Extract name components from structured CSV data
+                            formatted_name, last_name, first_name, middle_initial = self._extract_name_from_csv_data(row)
                             
-                            # Generate QR code with both ID and name (separated by pipe)
-                            qr_data = f"{school_id}|{student_name}"
+                            # Generate QR code with both ID and formatted name (separated by pipe)
+                            qr_data = f"{school_id}|{formatted_name}"
                             qr = qrcode.QRCode(
                                 version=1,
                                 error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -113,7 +135,10 @@ class QRGeneratorView(BaseView):
                             self.qr_codes_data.append((qr_data, img_base64))
                             students_data.append({
                                 "school_id": school_id,
-                                "name": student_name,
+                                "name": formatted_name,
+                                "last_name": last_name,
+                                "first_name": first_name,
+                                "middle_initial": middle_initial,
                                 "qr_data": qr_data,
                                 "row_data": row
                             })
@@ -124,7 +149,7 @@ class QRGeneratorView(BaseView):
                                     content=ft.Column(
                                         [
                                             ft.Text(
-                                                f"{school_id}: {student_name}",
+                                                f"{school_id}: {formatted_name}",
                                                 size=12,
                                                 weight=ft.FontWeight.BOLD,
                                                 color=ft.Colors.GREY_800
@@ -271,7 +296,10 @@ class QRGeneratorView(BaseView):
                                         student['name'],
                                         student['qr_data'],
                                         b64_encoded,
-                                        str(student['row_data'])
+                                        str(student['row_data']),
+                                        student.get('last_name'),
+                                        student.get('first_name'),
+                                        student.get('middle_initial')
                                     )
                                 else:
                                     # Create new student
@@ -280,7 +308,10 @@ class QRGeneratorView(BaseView):
                                         student['name'],
                                         student['qr_data'],
                                         b64_encoded,
-                                        str(student['row_data'])
+                                        str(student['row_data']),
+                                        student.get('last_name'),
+                                        student.get('first_name'),
+                                        student.get('middle_initial')
                                     )
                                 
                                 if success:
