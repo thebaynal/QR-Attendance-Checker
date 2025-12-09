@@ -176,6 +176,19 @@ def create_user():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/users/<username>', methods=['GET'])
+@require_api_key
+def get_user_by_username(username):
+    """Get user role by username."""
+    try:
+        role = db.get_user_role(username)
+        if role:
+            return jsonify({'username': username, 'role': role}), 200
+        else:
+            return jsonify({'error': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/users/<username>', methods=['DELETE'])
 @require_api_key
 def delete_user(username):

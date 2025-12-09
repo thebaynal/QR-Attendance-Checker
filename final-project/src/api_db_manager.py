@@ -53,8 +53,12 @@ class APIDatabase:
         return None
     
     def get_user_role(self, username: str) -> Optional[str]:
-        """Get user role."""
-        return 'admin'
+        """Get user role via API."""
+        users = self.get_all_users()
+        for user in users:
+            if user[0] == username:  # user[0] is username
+                return user[2]  # user[2] is role
+        return None
     
     def record_login(self, username: str):
         """Record login."""
