@@ -255,6 +255,30 @@ def get_attendance(event_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/students', methods=['GET'])
+@require_api_key
+def get_all_students():
+    """Get all students."""
+    try:
+        # Query all students from database
+        students = db._execute("SELECT school_id, name, last_name, first_name, middle_initial FROM students_qrcodes ORDER BY school_id", fetch_all=True)
+        
+        if students:
+            result = []
+            for student in students:
+                result.append({
+                    'school_id': student[0],
+                    'name': student[1],
+                    'last_name': student[2],
+                    'first_name': student[3],
+                    'middle_initial': student[4]
+                })
+            return jsonify(result), 200
+        else:
+            return jsonify([]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/students/<school_id>', methods=['GET'])
 @require_api_key
 def get_student(school_id):
