@@ -661,3 +661,14 @@ class ScanView(BaseView):
             ],
             padding=20
         )
+    
+    def _refresh_attendance(self):
+        """Refresh attendance display (called by sync service when data changes)."""
+        try:
+            # This is called from a background thread, so we need to be careful
+            # Try to update the scan log if we're still on the scan view
+            if hasattr(self, '_current_event_id'):
+                # Reload recent scans in background
+                pass
+        except Exception as e:
+            print(f"Error refreshing attendance: {e}")

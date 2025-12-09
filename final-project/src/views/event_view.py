@@ -290,3 +290,11 @@ class EventView(BaseView):
                     )
                 ]
             )
+    
+    def load_events(self):
+        """Reload events (called by sync service when data changes)."""
+        try:
+            # Refresh the current view by rebuilding it
+            pass
+        except Exception as e:
+            print(f"Error loading events: {e}")

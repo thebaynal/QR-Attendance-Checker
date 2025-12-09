@@ -7,6 +7,7 @@ from config.constants import *
 from database.db_manager import Database
 from api_db_manager import APIDatabase
 from remote_config import USE_REMOTE_DATABASE, API_BASE_URL, API_KEY
+from sync_service import SyncService
 from views.login_view import LoginView
 from views.home_view import HomeView
 from views.event_view import EventView
@@ -30,6 +31,11 @@ class MaScanApp:
         else:
             self.db = Database(DATABASE_NAME)
             print("Using local database")
+        
+        # Initialize sync service for real-time updates
+        self.sync_service = SyncService(self.db, poll_interval=2.0)
+        self.sync_service.register_callback(self._on_data_change)
+        self.sync_service.start()
         
         self.current_user = None
         self.drawer = None
@@ -385,3 +391,40 @@ class MaScanApp:
         
         # Navigate to login
         self.page.go("/")
+    
+    def _on_data_change(self, change_data: dict):
+        """Handle data changes from sync service."""
+        try:
+            change_type = change_data.get('type')
+            
+            # Refresh specific views based on what changed
+            if change_type == 'scans_updated':
+                # Refresh scan view and activity log
+                if hasattr(self.scan_view, '_refresh_attendance'):
+                    self.scan_view._refresh_attendance()
+                if hasattr(self.activity_log_view, '_update_tabs'):
+                    self.activity_log_view._update_tabs()
+            
+            elif change_type == 'events_updated':
+                # Refresh event view
+                if hasattr(self.event_view, 'load_events'):
+                    self.event_view.load_events()
+            
+            elif change_type == 'logins_updated':
+                # Refresh activity log
+                if hasattr(self.activity_log_view, '_update_tabs'):
+                    self.activity_log_view._update_tabs()
+            
+            # Update page to reflect changes
+            try:
+                self.page.update()
+            except:
+                pass
+        
+        except Exception as e:
+            print(f"Error handling data change: {e}")
+    
+    def on_window_close(self):
+        """Clean up when app closes."""
+        self.sync_service.stop()
+
