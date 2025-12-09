@@ -1,4 +1,4 @@
-# views/login_view.py
+﻿# views/login_view.py
 """Premium login view with enhanced typography and shadows."""
 
 import flet as ft
@@ -138,7 +138,7 @@ class LoginView(BaseView):
                 display_name = full_name[0] if full_name else username_value
                 
                 self.app.current_user = username_value
-                self.show_snackbar(f"Welcome back, {display_name}! 🎉", ft.Colors.GREEN_600)
+                self.show_snackbar(f"Welcome back, {display_name}! ≡ƒÄë", ft.Colors.GREEN_600)
                 self.page.go("/home")
             else:
                 error_text.value = "Invalid username or password"

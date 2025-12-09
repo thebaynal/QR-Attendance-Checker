@@ -1,4 +1,4 @@
-# app.py
+﻿# app.py
 """Main application class for MaScan Attendance."""
 
 import flet as ft

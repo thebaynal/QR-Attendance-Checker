@@ -1,4 +1,4 @@
-# views/home_view.py
+﻿# views/home_view.py
 """Premium home view with advanced typography and styling."""
 
 import flet as ft
@@ -138,11 +138,11 @@ class HomeView(BaseView):
                 def confirm_delete(e):
                     try:
                         self.db.delete_event(event_id)
-                        self.show_snackbar(f"✓ Event '{event_name}' deleted successfully", ft.Colors.GREEN_600)
+                        self.show_snackbar(f"Γ£ô Event '{event_name}' deleted successfully", ft.Colors.GREEN_600)
                         self.page.close(dialog)
                         refresh_view()
                     except Exception as ex:
-                        self.show_snackbar(f"✗ Error deleting event: {str(ex)}", ft.Colors.RED_600)
+                        self.show_snackbar(f"Γ£ù Error deleting event: {str(ex)}", ft.Colors.RED_600)
                         self.page.close(dialog)
 
                 dialog = ft.AlertDialog(
@@ -180,7 +180,7 @@ class HomeView(BaseView):
                                     border_radius=8,
                                 ),
                                 ft.Text(
-                                    "⚠️ This will permanently delete all attendance records for this event.",
+                                    "ΓÜá∩╕Å This will permanently delete all attendance records for this event.",
                                     size=13,
                                     color=ft.Colors.RED_700,
                                     italic=True,
@@ -567,8 +567,8 @@ class HomeView(BaseView):
                                                         options=[
                                                             ft.dropdown.Option("date_desc", "Newest First"),
                                                             ft.dropdown.Option("date_asc", "Oldest First"),
-                                                            ft.dropdown.Option("name_asc", "A → Z"),
-                                                            ft.dropdown.Option("name_desc", "Z → A"),
+                                                            ft.dropdown.Option("name_asc", "A ΓåÆ Z"),
+                                                            ft.dropdown.Option("name_desc", "Z ΓåÆ A"),
                                                         ],
                                                         text_size=14,
                                                         width=140,

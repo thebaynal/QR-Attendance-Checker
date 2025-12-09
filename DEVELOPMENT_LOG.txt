@@ -1,0 +1,607 @@
+================================================================================
+QR-ATTENDANCE-CHECKER - DEVELOPMENT LOG
+================================================================================
+Project: QR Attendance System for Schools/Organizations
+Owner: @thebaynal, @macmac-12, @JohnRaymondAlba, @Fred727wysi
+Repository: QR-Attendance-Checker
+Start Date: December 4, 2025
+
+================================================================================
+PROJECT OVERVIEW
+================================================================================
+
+The QR-Attendance-Checker is a comprehensive attendance management system that
+allows administrators to manage events, generate QR codes for students, and track
+attendance through QR code scanning. The application includes user management,
+PDF export capabilities, and now includes activity monitoring features.
+
+================================================================================
+TECHNOLOGY STACK
+================================================================================
+
+Frontend Framework: Flet (Python UI Framework)
+Database: SQLite
+Language: Python
+Key Libraries:
+  - flet: UI framework
+  - sqlite3: Database management
+  - datetime: Timestamp handling
+  - json: Data serialization
+
+================================================================================
+CORE FEATURES IMPLEMENTED
+================================================================================
+
+1. USER AUTHENTICATION & MANAGEMENT
+   ✓ Login system with role-based access (Admin/Scanner)
+   ✓ User creation with roles
+   ✓ Default admin user (username: admin, password: admin123)
+   ✓ Password-protected access
+
+2. EVENT MANAGEMENT
+   ✓ Create events with name, date, and description
+   ✓ View all events in list format
+   ✓ Delete events (admin only)
+   ✓ Events stored with unique IDs
+
+3. STUDENT & QR CODE MANAGEMENT
+   ✓ Generate QR codes for students
+   ✓ Store student information (school ID, name, year level, section)
+   ✓ QR code encoding/decoding
+   ✓ CSV import capability for student data
+
+4. ATTENDANCE TRACKING
+   ✓ Time-slot based attendance (morning, lunch, afternoon)
+   ✓ QR code scanning for attendance recording
+   ✓ Attendance summary by time slot
+   ✓ Attendance grouped by section/year level
+   ✓ Check duplicate scans (prevent double entry)
+
+5. ATTENDANCE REPORTING
+   ✓ View attendance by event
+   ✓ Attendance summary statistics
+   ✓ Export attendance to PDF
+   ✓ Color-coded attendance status
+
+6. ACTIVITY MONITORING (NEW - LATEST SESSION)
+   ✓ Login history tracking
+   ✓ Logout recording
+   ✓ Scan history with scanner details
+   ✓ Activity log admin dashboard
+   ✓ Recent activity display
+
+================================================================================
+DATABASE SCHEMA
+================================================================================
+
+TABLES:
+  
+  users
+  ├── username (TEXT, PRIMARY KEY)
+  ├── password (TEXT)
+  ├── full_name (TEXT)
+  ├── role (TEXT: 'admin' or 'scanner')
+  └── created_at (TEXT, ISO format)
+
+  events
+  ├── id (TEXT, PRIMARY KEY)
+  ├── name (TEXT)
+  ├── date (TEXT)
+  └── description (TEXT)
+
+  attendance
+  ├── event_id (TEXT, FOREIGN KEY)
+  ├── user_id (TEXT)
+  ├── user_name (TEXT)
+  ├── timestamp (TEXT)
+  ├── status (TEXT)
+  ├── time_slot (TEXT: 'morning', 'lunch', 'afternoon')
+  └── PRIMARY KEY (event_id, user_id, time_slot)
+
+  attendance_timeslots
+  ├── id (INTEGER, PRIMARY KEY)
+  ├── event_id (TEXT, FOREIGN KEY)
+  ├── user_id (TEXT)
+  ├── morning_time, lunch_time, afternoon_time (TEXT)
+  ├── morning_status, lunch_status, afternoon_status (TEXT)
+  ├── date_recorded (TEXT)
+  └── UNIQUE(event_id, user_id)
+
+  students_qrcodes
+  ├── id (INTEGER, PRIMARY KEY)
+  ├── school_id (TEXT, UNIQUE)
+  ├── name (TEXT)
+  ├── year_level (TEXT)
+  ├── section (TEXT)
+  ├── qr_data (TEXT)
+  ├── qr_data_encoded (TEXT)
+  ├── csv_data (TEXT, JSON)
+  └── created_at (TEXT)
+
+  login_history (NEW)
+  ├── id (INTEGER, PRIMARY KEY)
+  ├── username (TEXT, FOREIGN KEY)
+  ├── login_time (TEXT, ISO format)
+  └── logout_time (TEXT, ISO format)
+
+  scan_history (NEW)
+  ├── id (INTEGER, PRIMARY KEY)
+  ├── scanner_username (TEXT, FOREIGN KEY)
+  ├── scanned_user_id (TEXT)
+  ├── scanned_user_name (TEXT)
+  ├── event_id (TEXT, FOREIGN KEY)
+  └── scan_time (TEXT, ISO format)
+
+================================================================================
+APPLICATION VIEWS & ROUTES
+================================================================================
+
+1. LOGIN VIEW (/)
+   - Username and password authentication
+   - Validates credentials against database
+   - Records login in activity log
+   - Redirects to home on success
+
+2. HOME VIEW (/home)
+   - Displays list of all events
+   - Event cards with name, date, description
+   - Admin-only options: Add Event, Delete Event
+   - Scanner access: View Attendance, Start Scanning
+   - Admin-only menu items
+
+3. CREATE EVENT VIEW (/create_event)
+   - Form to create new events
+   - Input fields: Event Name, Date, Description
+   - Admin-only access
+   - Generates unique event ID
+
+4. EVENT VIEW (/event/<event_id>)
+   - Displays attendance for specific event
+   - Attendance grouped by section/year
+   - Shows status for each time slot
+   - Statistics summary
+
+5. SCAN VIEW (/scan/<event_id>)
+   - QR code scanner interface
+   - Real-time camera feed
+   - Time-slot selection (morning, lunch, afternoon)
+   - Duplicate scan detection
+   - Success/warning feedback messages
+   - Records scans in activity log
+
+6. QR GENERATOR VIEW (/qr_generator)
+   - Generate QR codes for students
+   - Batch QR code generation
+   - Download QR codes
+   - Admin-only access
+
+7. USER MANAGEMENT VIEW (/user_management)
+   - Create new scanner users
+   - View existing users
+   - User role assignment
+   - Admin-only access
+
+8. ACTIVITY LOG VIEW (/activity_log) - NEW
+   - Two-tab interface:
+     a) Recent Logins Tab
+        - Shows all user logins/logouts
+        - Login timestamp
+        - Logout timestamp (or "Still logged in")
+        - User information
+     
+     b) Recent Scans Tab
+        - Shows scan history
+        - Scanner username
+        - Scanned user details
+        - Event name
+        - Exact timestamp
+   - Card-based UI with icons
+   - Auto-formatted timestamps
+   - Admin-only access
+
+================================================================================
+APPLICATION FLOW & PROCESS
+================================================================================
+
+USER JOURNEY:
+
+1. STARTUP
+   └─ Application initializes
+      ├─ Page configuration (window size, title, theme)
+      ├─ Database initialization
+      ├─ Create default admin user if not exists
+      └─ Route to login page (/)
+
+2. LOGIN PROCESS
+   ├─ User enters credentials
+   ├─ System authenticates against database
+   ├─ On success:
+   │  ├─ Record login in login_history table
+   │  ├─ Set app.current_user
+   │  ├─ Display welcome message
+   │  └─ Navigate to /home
+   └─ On failure:
+      └─ Display error message
+
+3. HOME PAGE NAVIGATION
+   ├─ Display all events
+   ├─ Scanner users:
+   │  ├─ View Attendance (read-only)
+   │  └─ Start Scanning
+   └─ Admin users (all scanner actions + ):
+      ├─ Add Event
+      ├─ Delete Event
+      ├─ Generate QR Codes
+      ├─ Manage Users
+      └─ View Activity Log
+
+4. EVENT CREATION (Admin Only)
+   ├─ Navigate to /create_event
+   ├─ Fill in event details
+   ├─ System generates unique event ID
+   ├─ Save to database
+   └─ Return to home view
+
+5. QR CODE SCANNING PROCESS
+   ├─ Select event from home
+   ├─ Navigate to /scan/<event_id>
+   ├─ Select time slot (morning/lunch/afternoon)
+   ├─ Scan student QR code
+   ├─ System:
+   │  ├─ Decodes QR data
+   │  ├─ Looks up student
+   │  ├─ Checks for duplicate scan
+   │  ├─ Records attendance in attendance_timeslots
+   │  ├─ Records scan in scan_history (with scanner username)
+   │  ├─ Updates statistics
+   │  └─ Shows success/warning feedback
+   └─ Repeat for additional students
+
+6. ATTENDANCE VIEWING
+   ├─ Navigate to /event/<event_id>
+   ├─ View attendance grouped by:
+   │  ├─ Course
+   │  ├─ Year Level
+   │  └─ Section
+   ├─ See status for each time slot:
+   │  ├─ Morning
+   │  ├─ Lunch
+   │  └─ Afternoon
+   ├─ View check-in times
+   └─ Export to PDF
+
+7. ACTIVITY MONITORING (New Feature)
+   ├─ Navigate to /activity_log (admin only)
+   ├─ View Recent Logins Tab:
+   │  ├─ All user login/logout records
+   │  ├─ Timestamps
+   │  └─ Session duration (if logged out)
+   ├─ View Recent Scans Tab:
+   │  ├─ All QR scan records
+   │  ├─ Scanner username
+   │  ├─ Student details
+   │  ├─ Event name
+   │  └─ Exact scan time
+   └─ Monitor usage patterns
+
+8. LOGOUT PROCESS
+   ├─ User clicks logout from menu
+   ├─ System:
+   │  ├─ Records logout time in login_history
+   │  ├─ Stops camera if running
+   │  ├─ Clears current_user
+   │  └─ Closes drawer
+   └─ Redirects to login page
+
+================================================================================
+LATEST UPDATES (CURRENT SESSION)
+================================================================================
+
+SESSION DATE: December 7, 2025
+
+FEATURE: Activity Log & Monitoring System
+
+NEW DATABASE TABLES:
+  1. login_history
+     - Tracks user login/logout events
+     - Fields: id, username, login_time, logout_time
+     
+  2. scan_history
+     - Tracks QR scan events
+     - Fields: id, scanner_username, scanned_user_id, scanned_user_name, 
+               event_id, scan_time
+
+NEW DATABASE METHODS (db_manager.py):
+  ✓ record_login(username) - Records login timestamp
+  ✓ record_logout(username) - Records logout timestamp
+  ✓ record_scan(scanner_username, scanned_user_id, scanned_user_name, event_id)
+  ✓ get_recent_logins(limit) - Retrieves login history
+  ✓ get_recent_scans(limit) - Retrieves scan history
+  ✓ get_scans_by_scanner(username, limit) - Filters scans by user
+
+NEW VIEW: activity_log_view.py
+  - Two-tab interface (Recent Logins, Recent Scans)
+  - Card-based UI with Material icons
+  - Automatic ISO datetime formatting
+  - Admin-only access control
+  - Empty state handling
+  - Event name resolution for scans
+
+NEW ROUTE: /activity_log
+  - Admin-only access
+  - Integrated into routing system
+  - Protected with role-based access
+
+NAVIGATION UPDATES:
+  - Added "Activity Log" menu item in drawer
+  - Added navigate_activity_log() method
+  - History icon for activity log menu
+  - Drawer closes after navigation
+
+INTEGRATION POINTS:
+  1. login_view.py
+     - Now calls db.record_login() on successful authentication
+     
+  2. scan_view.py
+     - Now calls db.record_scan() after successful attendance recording
+     - Captures scanner username and student details
+     
+  3. app.py
+     - Now calls db.record_logout() on logout
+     - Records which user logged out and when
+     - Added ActivityLogView import and initialization
+     - Added activity_log route handler
+
+FILES MODIFIED:
+  1. src/database/db_manager.py
+     - Added login_history table creation
+     - Added scan_history table creation
+     - Added 6 new tracking methods
+     - Total additions: ~170 lines
+
+  2. src/views/activity_log_view.py (NEW)
+     - Complete new view file
+     - Total lines: ~260
+
+  3. src/app.py
+     - Import ActivityLogView
+     - Initialize activity_log_view instance
+     - Add /activity_log route handler
+     - Add navigate_activity_log() method
+     - Update create_drawer() with Activity Log menu
+     - Update logout() to record logout event
+     - Total changes: ~50 lines
+
+  4. src/views/scan_view.py
+     - Added record_scan() call after attendance recording
+     - Captures scanner username and student details
+     - Total changes: ~10 lines
+
+  5. src/views/login_view.py
+     - Added record_login() call after authentication
+     - Total changes: ~3 lines
+
+================================================================================
+SECURITY & ACCESS CONTROL
+================================================================================
+
+ROLE-BASED ACCESS:
+  
+  SCANNER Role (Default):
+  ├─ Can login
+  ├─ Can view home page
+  ├─ Can view events
+  ├─ Can scan QR codes
+  ├─ Can view attendance records
+  └─ Can logout
+
+  ADMIN Role:
+  ├─ All scanner capabilities
+  ├─ Can create events
+  ├─ Can delete events
+  ├─ Can generate QR codes
+  ├─ Can manage users
+  ├─ Can view activity logs
+  └─ Can manage scanner users
+
+ADMIN-ONLY PAGES:
+  ✓ /create_event - Event creation
+  ✓ /qr_generator - QR code generation
+  ✓ /user_management - User management
+  ✓ /activity_log - Activity monitoring
+
+ACCESS ENFORCEMENT:
+  - Role check in route_change() method
+  - Redirect to home with snackbar if unauthorized
+  - Menu items only show for appropriate roles
+  - Database queries restricted by role
+
+================================================================================
+KEY TECHNICAL DECISIONS
+================================================================================
+
+1. TIME-SLOT BASED ATTENDANCE
+   - Allows tracking attendance across multiple sessions (morning, lunch, afternoon)
+   - Prevents duplicate entries per time slot
+   - Enables detailed attendance summaries
+
+2. DUAL ATTENDANCE TABLES
+   - Legacy attendance table for backward compatibility
+   - New attendance_timeslots table for enhanced time-slot tracking
+   - Fallback logic in get_attendance_summary()
+
+3. ACTIVITY LOGGING APPROACH
+   - Separate tables for different activities (login, scans)
+   - Timestamp-based records for audit trail
+   - Scanner username captured with each scan
+   - Enables tracking "who scanned whom"
+
+4. QR CODE SCANNING
+   - Real-time camera feed using Flet
+   - Client-side QR decoding
+   - Immediate feedback (success/warning messages)
+   - Auto-refresh of statistics
+
+5. STATE MANAGEMENT
+   - Global app.current_user for authentication
+   - Database as single source of truth
+   - Role-based view construction
+   - Dynamic menu generation
+
+================================================================================
+PERFORMANCE & SCALABILITY
+================================================================================
+
+DATABASE INDEXES:
+  ✓ idx_students_section - For section-based queries
+  ✓ idx_attendance_event - For event-based queries
+
+QUERY OPTIMIZATION:
+  ✓ Fetch recent data with LIMIT clauses
+  ✓ Use of LEFT JOIN for attendance lookups
+  ✓ GROUP BY for summary statistics
+  ✓ JSON extraction for nested student data
+
+PAGINATION:
+  - ListView with scroll support
+  - Default limit of 50 records per query
+  - Customizable query limits
+
+================================================================================
+ERROR HANDLING & VALIDATION
+================================================================================
+
+INPUT VALIDATION:
+  ✓ Username/password required for login
+  ✓ Event name and date required
+  ✓ Student QR data validation
+  ✓ Duplicate user prevention
+
+ERROR RECOVERY:
+  ✓ Try-catch blocks in critical sections
+  ✓ Database fallback logic
+  ✓ Error view display
+  ✓ Debug logging for troubleshooting
+
+DATABASE INTEGRITY:
+  ✓ Foreign key constraints
+  ✓ UNIQUE constraints for preventing duplicates
+  ✓ Transaction management with commit/rollback
+  ✓ Migration support for schema updates
+
+================================================================================
+FUTURE ENHANCEMENTS
+================================================================================
+
+POTENTIAL FEATURES:
+  1. Advanced reporting and analytics
+     - Attendance trends
+     - Peak scanning times
+     - Most active scanners
+     
+  2. Notifications
+     - Email alerts for late attendance
+     - Notifications for important events
+     
+  3. Mobile app
+     - Separate mobile interface
+     - Real-time sync
+     
+  4. Multi-language support
+     - Localization
+     - Language selection
+     
+  5. Advanced QR features
+     - QR code validation
+     - Expiration dates
+     - One-time use QR codes
+     
+  6. Batch operations
+     - Bulk user import
+     - Batch attendance export
+     
+  7. Export formats
+     - Excel support
+     - Additional report types
+     
+  8. Performance optimization
+     - Database connection pooling
+     - Caching layer
+
+================================================================================
+INSTALLATION & SETUP
+================================================================================
+
+REQUIREMENTS:
+  - Python 3.8+
+  - Virtual environment (.venv)
+  - Dependencies from requirements.txt
+
+SETUP STEPS:
+  1. Create virtual environment: python -m venv .venv
+  2. Activate: .venv\Scripts\Activate.ps1
+  3. Install packages: pip install -r requirements.txt
+  4. Run application: python final-project/src/main.py
+
+DEFAULT CREDENTIALS:
+  - Username: admin
+  - Password: admin123
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+Authentication:
+  ☐ Test login with correct credentials
+  ☐ Test login with incorrect credentials
+  ☐ Test logout functionality
+  ☐ Verify activity log records login/logout
+
+Event Management:
+  ☐ Create new event
+  ☐ View events list
+  ☐ Delete event
+  ☐ Verify event appears in scan view
+
+QR Scanning:
+  ☐ Generate QR codes for students
+  ☐ Scan QR code
+  ☐ Verify duplicate scan detection
+  ☐ Check attendance recorded
+  ☐ Verify scan logged in activity log
+
+Attendance Reporting:
+  ☐ View attendance by event
+  ☐ Check time-slot separation
+  ☐ Verify section grouping
+  ☐ Export to PDF
+
+Activity Log:
+  ☐ Verify login records appear
+  ☐ Verify logout records appear
+  ☐ Verify scan records with scanner name
+  ☐ Check timestamp formatting
+  ☐ Test admin-only access
+
+================================================================================
+CONCLUSION
+================================================================================
+
+The QR-Attendance-Checker application has evolved from a basic attendance 
+tracking system into a comprehensive attendance management platform with 
+activity monitoring capabilities.
+
+Key achievements:
+- Role-based access control
+- Time-slot based attendance tracking
+- QR code generation and scanning
+- PDF export functionality
+- Admin activity monitoring
+- Comprehensive audit trail
+
+The application is production-ready and scalable, with proper error handling,
+database management, and user experience considerations.
+
+================================================================================
+END OF DEVELOPMENT LOG
+================================================================================
