@@ -407,6 +407,16 @@ class MaScanApp:
                 pass
         self.page.go("/home")
 
+    def navigate_qr_generator(self):
+        """Navigate to QR generator and close drawer."""
+        if self.drawer:
+            try:
+                self.drawer.open = False
+                self.drawer.update()
+            except:
+                pass
+        self.page.go("/qr_generator")
+
     def navigate_user_management(self):
         """Navigate to user management and close drawer."""
         if self.drawer:
