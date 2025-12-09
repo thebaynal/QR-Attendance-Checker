@@ -547,7 +547,7 @@ class HomeView(BaseView):
                                 ft.Column(
                                     [
                                         ft.Text(
-                                            "My Events",
+                                            "Events",
                                             size=34,
                                             weight=ft.FontWeight.BOLD,
                                             color=ft.Colors.GREY_900,
