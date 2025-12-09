@@ -204,6 +204,9 @@ class MaScanApp:
         def on_home_click(e):
             self.navigate_home()
         
+        def on_qr_click(e):
+            self.navigate_qr_generator()
+        
         def on_user_mgmt_click(e):
             self.navigate_user_management()
         
