@@ -688,7 +688,7 @@ python -m pytest final-project/tests/ --cov=final-project/src --cov-report=html
 | **macmac-12** | Backend Lead | Database design, API implementation, sync service | 48 |
 | **thebaynal** | Full Stack | Architecture, API server, multi-device setup, DevOps | 50+ |
 | **JohnRaymondAlba** | Frontend Lead | Flet UI design, views, PDF export, UX | 18 |
-| **Fred727wysi** | Documentation | README, security guide, setup docs | 1 |
+| **Fred727wysi** | Documentation | README, security guide, setup docs, UI Improvements, Filter Feature | 1 |
 
 #### **Contribution Breakdown**
 
