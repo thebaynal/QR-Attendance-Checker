@@ -33,14 +33,14 @@
 
 ## ✨ Features
 
-✅ **QR Code Scanning** — Real-time detection via OpenCV + pyzbar
-✅ **Event Management** — Create, manage, and track events with multiple time slots
-✅ **User Management** — Role-based access control (Admin/Scanner) with secure authentication
-✅ **PDF Export** — Generate formatted attendance reports
-✅ **Activity Logging** — Complete audit trail of all system actions
-✅ **Modern UI** — Built with Flet for cross-platform desktop & web support
-✅ **Multi-Device API** — Optional REST API server for team-based scanning
-✅ **Real-Time Sync** — Automatic data synchronization across devices
+- ✅ **QR Code Scanning** — Real-time detection via OpenCV + pyzbar
+- ✅ **Event Management** — Create, manage, and track events with multiple time slots
+- ✅ **User Management** — Role-based access control (Admin/Scanner) with secure authentication
+- ✅ **PDF Export** — Generate formatted attendance reports
+- ✅ **Activity Logging** — Complete audit trail of all system actions
+- ✅ **Modern UI** — Built with Flet for cross-platform desktop & web support
+- ✅ **Multi-Device API** — Optional REST API server for team-based scanning
+- ✅ **Real-Time Sync** — Automatic data synchronization across devices
 
 ---
 
