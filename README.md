@@ -760,15 +760,13 @@ Share your experience with:
 
 #### **2. thebaynal - Full Stack & DevOps**
 
-[**PLACEHOLDER - Please fill in 150-200 words**]
+Leading this project's architecture and deployment was both challenging and rewarding. I architected the multi-device synchronization system that enables real-time attendance tracking across multiple devices using Flask REST APIs and SQLite with 2-second polling intervals. This decision prioritized simplicity and reliability over cutting-edge technology—a pragmatic choice that delivered results.
 
-Share your experience with:
-- Overall architecture decisions
-- Multi-device synchronization challenges
-- API server implementation and deployment
-- Team coordination and leadership
-- Technical insights and lessons learned
-- What you'd improve in future versions
+The most significant challenge was designing a system that could operate in both local and remote modes seamlessly. Implementing the conditional database initialization in `app.py` required careful consideration of error handling and fallback mechanisms. I coordinated with the team to establish clear separation of concerns: backend database operations, API endpoints, and frontend views, ensuring smooth integration.
+
+From a DevOps perspective, deploying the API server on port 5000 and managing network configurations across devices taught me the importance of comprehensive documentation and testing. I created diagnostic scripts and testing guides to help the team validate functionality quickly.
+
+My key learning was that good architecture isn't about using the most advanced technologies—it's about making decisions that enable the team to move fast, understand the codebase, and deploy with confidence. I'd improve this by implementing WebSocket-based real-time sync instead of polling, and adding automated CI/CD pipelines for faster deployment cycles.
 
 ---
 
