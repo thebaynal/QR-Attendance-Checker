@@ -772,15 +772,15 @@ My key learning was that good architecture isn't about using the most advanced t
 
 #### **3. JohnRaymondAlba - Frontend & UX**
 
-[**PLACEHOLDER - Please fill in 150-200 words**]
+Working with Flet was a great learning experience for me. At first, the framework was hard to understand because I had to learn a new way of building interfaces. Once I learned how Flet works with controls and containers, things got easier and faster.
 
-Share your experience with:
-- Flet framework experience and learning curve
-- UI/UX design decisions
-- PDF export implementation challenges
-- Cross-platform compatibility testing
-- View routing and state management
-- What worked well and what was difficult
+For the UI design, I focused on making it simple and easy to use. I designed separate flows for admins and scanners so each person only sees what they need. The main dashboard took several tries to get right, I wanted to show enough information without making it look too crowded. Big thanks to Fred for the last minute UI improvement before presentation.
+
+The hardest part was creating the PDF export. I had to format student names correctly (last name, first name, middle initial) and make sure everything lines up properly on the pages. Using ReportLab was new to me, so I had to learn how to style tables and manage page breaks.
+
+I tested the app on Windows, and in web browsers, and found that some things didn't look the same everywhere. I fixed these problems by making the layouts flexible and responsive for different devices. However, I still need to edit the login interface since I did not focus much on that due to time constaints. Managing the routing between different screens and keeping track of data was something I improved throughout the project by organizing it better in `app.py`.
+
+What I'm proud of is how I structured the views using a base class, this stopped me from repeating code and made it faster to add new features. The hardest challenge was figuring out why the camera didn't work properly in web browsers, so I had to make a desktop-only version for that feature. It is still a problem up to this date and we need to find a way to make the camera works on the phone since it displays the main servers/device camera.
 
 ---
 
