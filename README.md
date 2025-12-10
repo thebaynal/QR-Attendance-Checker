@@ -781,18 +781,9 @@ What I'm proud of is how I structured the views using a base class, this stopped
 
 ---
 
-#### **4. Fred727wysi - Documentation & Support**
+#### **4. Fred727wysi - Documentation & Support
 
-[**PLACEHOLDER - Please fill in 150-200 words**]
-
-Share your experience with:
-- Documentation writing and organization
-- Security setup guide development
-- How you supported the team
-- Challenges in explaining technical concepts
-- What you learned about the project
-- Suggestions for future documentation
-
+Working on documentation taught me how to organize information so people can actually find what they need without getting lost. I put together the security setup guide and made sure all our project files were labeled properly and in the right folders. I helped the team by doing some last minute UI improvements before the presentation which really made things look more polished. The hardest part was explaining technical concepts in a way that regular people could understand without using too much complicated terminology. Sometimes I had to simplify things alot and use examples to make it clearer. I spent time reviewing the code to understand how everything worked so I could write about it accurately in the documentation. What I learned from this project is that even the behind-the-scenes work like documentation is crucial because it helps everyone stay organized and makes the project look professional. I also realized that good formatting and clear headings make a huge difference in readability. For future documentation I think we should include more visual diagrams and step-by-step screenshots since those are way easier to follow than just text explanations. Overall it was satisfying to contribute to making the project complete and ready to present even if my role wasnt as visible as the coding parts.
 ---
 
 <div align="center">
