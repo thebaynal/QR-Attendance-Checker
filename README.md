@@ -747,14 +747,11 @@ Deployment & DevOps         [█████████░] 90%
 
 #### **1. macmac-12 - Backend Development**
 
-[**PLACEHOLDER - Please fill in 150-200 words**]
+The project began with a fundamental problem and it is connecting the application to data. After initial wait, a classmate's advice led me to the selection of SQLite. This decision was the key, providing an easy-to-use, embedded solution that allowed for rapid development of the QR Attendance Checker without complex server setup. The focus shifted immediately to designing the database schema to handle event records and attendance logs efficiently.
 
-Share your experience with:
-- Database design and optimization challenges
-- API endpoint implementation and testing
-- Key learnings and technical growth
-- What you'd do differently
-- Proud moments and obstacles overcome
+The bulk of the work focused on making the application functional. I spent time building the key endpoints: the code that handles Add Events, the logic that takes event data and transforms it into the physical Generate Codes, and setting up the Scan View camera interface to successfully register the attendance. Testing was constant—running the features over and over to make sure the data was actually flowing into the SQLite database correctly every time someone scanned.
+
+My biggest takeaway wasn't just code; it was realizing how vital teamwork and brainstorming are—you just solve problems faster together. And definitely, learning the fundamentals (the basics) was the base of all my growth. Looking back, I wish I had dedicated time to experimentation, maybe comparing QR code library performance. Still, my proudest moment was overcoming the initial fear and just getting the project started and seeing those core features finally work.
 
 ---
 
