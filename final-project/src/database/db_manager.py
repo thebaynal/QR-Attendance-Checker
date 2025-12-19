@@ -451,8 +451,26 @@ class Database:
         )
         """
         
+        # Food attendance table - separate tracking for food distribution
+        food_attendance_table = """
+        CREATE TABLE IF NOT EXISTS food_attendance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            user_name TEXT NOT NULL,
+            food_time TEXT NOT NULL,
+            food_type TEXT DEFAULT 'Breakfast',
+            scanner_username TEXT,
+            date_recorded TEXT NOT NULL,
+            FOREIGN KEY (event_id) REFERENCES events(id),
+            FOREIGN KEY (user_id) REFERENCES students_qrcodes(school_id),
+            FOREIGN KEY (scanner_username) REFERENCES users(username)
+        )
+        """
+        
         self._execute(students_table)
         self._execute(attendance_table)
+        self._execute(food_attendance_table)
         self._execute(login_history_table)
         self._execute(scan_history_table)
         
@@ -764,4 +782,163 @@ class Database:
             return scans
         except sqlite3.Error as e:
             print(f"Error getting scans by scanner: {e}")
+            return []
+
+    # ==================== FOOD ATTENDANCE METHODS ====================
+    
+    def record_food_attendance(self, event_id: str, school_id: str, user_name: str, 
+                               food_type: str = "Breakfast", scanner_username: str = None) -> bool:
+        """Record food attendance (separate from class attendance).
+        
+        Args:
+            event_id: Event ID
+            school_id: Student school ID
+            user_name: Student name
+            food_type: Type of food (Breakfast, Lunch, Dinner, Snack, etc.)
+            scanner_username: Username of person recording the food attendance
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            from datetime import datetime
+            
+            food_time = datetime.now().strftime("%H:%M:%S")
+            date_recorded = datetime.now().strftime("%Y-%m-%d")
+            
+            query = """
+            INSERT INTO food_attendance 
+            (event_id, user_id, user_name, food_time, food_type, scanner_username, date_recorded)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """
+            
+            self._execute(query, (event_id, school_id, user_name, food_time, food_type, 
+                                 scanner_username, date_recorded))
+            print(f"Food attendance recorded for {user_name} ({food_type})")
+            return True
+        except sqlite3.Error as e:
+            print(f"Error recording food attendance: {e}")
+            return False
+    
+    def get_food_attendance_by_event(self, event_id: str, food_type: str = None) -> list:
+        """Get all food attendance records for an event.
+        
+        Args:
+            event_id: Event ID
+            food_type: Optional filter by food type (Breakfast, Lunch, etc.)
+        
+        Returns:
+            List of food attendance records
+        """
+        try:
+            if food_type:
+                query = """
+                SELECT user_id, user_name, food_time, food_type, scanner_username, date_recorded
+                FROM food_attendance
+                WHERE event_id = ? AND food_type = ?
+                ORDER BY food_time DESC
+                """
+                results = self._execute(query, (event_id, food_type), fetch_all=True)
+            else:
+                query = """
+                SELECT user_id, user_name, food_time, food_type, scanner_username, date_recorded
+                FROM food_attendance
+                WHERE event_id = ?
+                ORDER BY food_time DESC
+                """
+                results = self._execute(query, (event_id,), fetch_all=True)
+            
+            records = []
+            if results:
+                for row in results:
+                    user_id, user_name, food_time, food_type_val, scanner_username, date_recorded = row
+                    records.append({
+                        'user_id': user_id,
+                        'user_name': user_name,
+                        'food_time': food_time,
+                        'food_type': food_type_val,
+                        'scanner_username': scanner_username,
+                        'date_recorded': date_recorded
+                    })
+            return records
+        except sqlite3.Error as e:
+            print(f"Error getting food attendance: {e}")
+            return []
+    
+    def get_food_attendance_count(self, event_id: str, food_type: str = None) -> int:
+        """Get count of food attendance records for an event.
+        
+        Args:
+            event_id: Event ID
+            food_type: Optional filter by food type
+        
+        Returns:
+            Number of food attendance records
+        """
+        try:
+            if food_type:
+                query = "SELECT COUNT(DISTINCT user_id) FROM food_attendance WHERE event_id = ? AND food_type = ?"
+                result = self._execute(query, (event_id, food_type), fetch_one=True)
+            else:
+                query = "SELECT COUNT(DISTINCT user_id) FROM food_attendance WHERE event_id = ?"
+                result = self._execute(query, (event_id,), fetch_one=True)
+            
+            return result[0] if result else 0
+        except sqlite3.Error as e:
+            print(f"Error getting food attendance count: {e}")
+            return 0
+    
+    def get_food_types_by_event(self, event_id: str) -> list:
+        """Get all distinct food types recorded for an event.
+        
+        Returns:
+            List of food types (Breakfast, Lunch, Dinner, etc.)
+        """
+        try:
+            query = """
+            SELECT DISTINCT food_type
+            FROM food_attendance
+            WHERE event_id = ?
+            ORDER BY food_type
+            """
+            results = self._execute(query, (event_id,), fetch_all=True)
+            return [row[0] for row in results] if results else []
+        except sqlite3.Error as e:
+            print(f"Error getting food types: {e}")
+            return []
+    
+    def get_recent_food_scans(self, event_id: str, limit: int = 20) -> list:
+        """Get recent food attendance records for display.
+        
+        Args:
+            event_id: Event ID
+            limit: Number of records to return
+        
+        Returns:
+            List of recent food attendance records
+        """
+        try:
+            query = """
+            SELECT user_id, user_name, food_time, food_type, scanner_username
+            FROM food_attendance
+            WHERE event_id = ?
+            ORDER BY food_time DESC
+            LIMIT ?
+            """
+            results = self._execute(query, (event_id, limit), fetch_all=True)
+            
+            records = []
+            if results:
+                for row in results:
+                    user_id, user_name, food_time, food_type, scanner_username = row
+                    records.append({
+                        'user_id': user_id,
+                        'user_name': user_name,
+                        'food_time': food_time,
+                        'food_type': food_type,
+                        'scanner_username': scanner_username
+                    })
+            return records
+        except sqlite3.Error as e:
+            print(f"Error getting recent food scans: {e}")
             return []

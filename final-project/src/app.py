@@ -11,6 +11,7 @@ from views.login_view import LoginView
 from views.home_view import HomeView
 from views.event_view import EventView
 from views.scan_view import ScanView
+from views.food_attendance_view import FoodAttendanceView
 from views.create_event_view import CreateEventView
 from views.qr_generator_view import QRGeneratorView
 from views.user_management_view import UserManagementView
@@ -47,6 +48,7 @@ class MaScanApp:
         self.home_view = HomeView(self)
         self.event_view = EventView(self)
         self.scan_view = ScanView(self)
+        self.food_attendance_view = FoodAttendanceView(self)
         self.create_event_view = CreateEventView(self)
         self.qr_generator_view = QRGeneratorView(self)
         self.user_management_view = UserManagementView(self)
@@ -112,6 +114,9 @@ class MaScanApp:
             elif route.startswith("/scan/"):
                 event_id = route.split("/")[-1]
                 new_view = self.scan_view.build(event_id) if self.current_user else self.login_view.build()
+            elif route.startswith("/food-attendance/"):
+                event_id = route.split("/")[-1]
+                new_view = self.food_attendance_view.build(event_id) if self.current_user else self.login_view.build()
             elif route == "/qr_generator":
                 if not self.current_user:
                     new_view = self.login_view.build()

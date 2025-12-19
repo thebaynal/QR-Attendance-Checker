@@ -430,6 +430,77 @@ def get_attendance_summary(event_id):
         return jsonify({'error': str(e)}), 500
 
 # ============================================================================
+# FOOD ATTENDANCE ENDPOINTS
+# ============================================================================
+
+@app.route('/api/food-attendance/record', methods=['POST'])
+@require_api_key
+def record_food_attendance():
+    """Record food attendance for a student."""
+    try:
+        data = request.get_json()
+        event_id = data.get('event_id')
+        school_id = data.get('school_id')
+        user_name = data.get('user_name')
+        food_type = data.get('food_type', 'Breakfast')
+        scanner_username = data.get('scanner_username')
+        
+        if not all([event_id, school_id, user_name]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        success = db.record_food_attendance(event_id, school_id, user_name, food_type, scanner_username)
+        
+        if success:
+            return jsonify({'status': 'success', 'message': f'Food attendance recorded for {user_name}'}), 200
+        else:
+            return jsonify({'error': 'Failed to record food attendance'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/food-attendance/<event_id>', methods=['GET'])
+@require_api_key
+def get_food_attendance(event_id):
+    """Get all food attendance records for an event."""
+    try:
+        food_type = request.args.get('food_type', None)
+        records = db.get_food_attendance_by_event(event_id, food_type)
+        return jsonify(records), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/food-attendance/<event_id>/count', methods=['GET'])
+@require_api_key
+def get_food_attendance_count(event_id):
+    """Get count of food attendance records for an event."""
+    try:
+        food_type = request.args.get('food_type', None)
+        count = db.get_food_attendance_count(event_id, food_type)
+        return jsonify({'event_id': event_id, 'food_type': food_type, 'count': count}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/food-attendance/<event_id>/types', methods=['GET'])
+@require_api_key
+def get_food_types(event_id):
+    """Get all food types recorded for an event."""
+    try:
+        food_types = db.get_food_types_by_event(event_id)
+        return jsonify({'event_id': event_id, 'food_types': food_types}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/food-attendance/<event_id>/recent', methods=['GET'])
+@require_api_key
+def get_recent_food_attendance(event_id):
+    """Get recent food attendance records for an event."""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        records = db.get_recent_food_scans(event_id, limit)
+        return jsonify(records), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
 # ERROR HANDLERS
 # ============================================================================
 

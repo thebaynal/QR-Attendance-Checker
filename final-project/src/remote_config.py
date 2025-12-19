@@ -8,4 +8,4 @@ API_BASE_URL = "http://172.16.70.142:5000"  # Use localhost for testing, or repl
 API_KEY = "QRAttendanceAPI_SecureKey_789!@#$%"
 
 # Set to True to use remote database, False for local
-USE_REMOTE_DATABASE = True
+USE_REMOTE_DATABASE = False

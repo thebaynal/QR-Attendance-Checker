@@ -398,6 +398,11 @@ class HomeView(BaseView):
                                                             on_click=lambda e, eid=event_id, edate=event_data['date'], ename=event_data['name']: 
                                                                 handle_scan_click(eid, edate, ename)
                                                         ),
+                                                        ft.PopupMenuItem(
+                                                            text="Food Attendance",
+                                                            icon=ft.Icons.LOCAL_DINING,
+                                                            on_click=lambda e, eid=event_id: self.page.go(f"/food-attendance/{eid}")
+                                                        ),
                                                         ft.PopupMenuItem(),
                                                         ft.PopupMenuItem(
                                                             text="Delete Event",
