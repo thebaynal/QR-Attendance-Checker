@@ -221,6 +221,136 @@ class AttendancePDFExporter:
             traceback.print_exc()
             raise
     
+    def export_food_attendance(self, event_id: str, filename: str):
+        """Export food attendance to PDF."""
+        try:
+            print(f"DEBUG: Starting Food Attendance PDF export to {filename}")
+            
+            # Get event info
+            event = self.db.get_event_by_id(event_id)
+            if not event:
+                raise ValueError("Event not found")
+            
+            print(f"DEBUG: Event found: {event['name']}")
+            
+            # Get food attendance data
+            food_records = self.db.get_food_attendance_by_event(event_id)
+            print(f"DEBUG: Got {len(food_records)} food attendance records")
+            
+            # Create PDF document
+            doc = SimpleDocTemplate(
+                filename,
+                pagesize=landscape(letter),
+                rightMargin=0.5*inch,
+                leftMargin=0.5*inch,
+                topMargin=0.75*inch,
+                bottomMargin=0.5*inch
+            )
+            
+            story = []
+            
+            # Title
+            title = Paragraph(f"Food Attendance Report: {event['name']}", self.styles['EventTitle'])
+            story.append(title)
+            
+            # Event details
+            date_info = Paragraph(
+                f"Date: {event['date']} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                self.styles['Stats']
+            )
+            story.append(date_info)
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Handle empty records
+            if not food_records:
+                empty_text = Paragraph(
+                    "No food attendance records found for this event.",
+                    self.styles['Normal']
+                )
+                story.append(empty_text)
+            else:
+                # Group by food type
+                food_by_type = {}
+                for record in food_records:
+                    food_type = record.get('food_type', 'Other')
+                    if food_type not in food_by_type:
+                        food_by_type[food_type] = []
+                    food_by_type[food_type].append(record)
+                
+                # Process each food type
+                for food_type in sorted(food_by_type.keys()):
+                    records = food_by_type[food_type]
+                    
+                    # Food type header
+                    header = Paragraph(f"Food Type: {food_type}", self.styles['SectionHeader'])
+                    story.append(header)
+                    
+                    # Statistics
+                    total_records = len(records)
+                    unique_students = len(set(r.get('user_id') for r in records))
+                    
+                    stats_text = f"Total Records: {total_records} | Unique Students: {unique_students}"
+                    stats = Paragraph(stats_text, self.styles['Normal'])
+                    story.append(stats)
+                    story.append(Spacer(1, 0.15*inch))
+                    
+                    # Create table data
+                    table_data = [
+                        ['#', 'Student ID', 'Student Name', 'Food Time', 'Scanner', 'Date']
+                    ]
+                    
+                    for idx, record in enumerate(records, 1):
+                        table_data.append([
+                            str(idx),
+                            record.get('user_id', ''),
+                            record.get('user_name', ''),
+                            record.get('food_time', '-'),
+                            record.get('scanner_username', '-'),
+                            record.get('date_recorded', '-')
+                        ])
+                    
+                    # Create table
+                    col_widths = [0.4*inch, 1.2*inch, 2.5*inch, 1.2*inch, 1.2*inch, 1.2*inch]
+                    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+                    
+                    # Style the table
+                    table.setStyle(TableStyle([
+                        # Header styling
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF9800')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        
+                        # Data rows
+                        ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 1), (-1, -1), 9),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#FFF3E0')]),
+                        
+                        # Grid
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    
+                    story.append(table)
+                    story.append(PageBreak())
+            
+            # Build PDF document
+            print(f"DEBUG: Building Food Attendance PDF with {len(story)} elements")
+            doc.build(story)
+            
+            print(f"DEBUG: Food Attendance PDF build completed successfully")
+            return filename
+            
+        except Exception as e:
+            print(f"ERROR in export_food_attendance: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+    
     def _get_attendance_fallback(self, event_id: str) -> dict:
         """Fallback method to get attendance from old table structure."""
         try:

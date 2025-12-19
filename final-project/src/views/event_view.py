@@ -218,6 +218,80 @@ class EventView(BaseView):
                     traceback.print_exc()
                     self.show_snackbar(f"❌ Export failed: {str(ex)}", ft.Colors.RED)
             
+            def export_food_attendance_to_pdf(e):
+                """Export food attendance to PDF with file picker."""
+                # Check if user is admin
+                if not is_admin:
+                    self.show_snackbar("Only admins can export food attendance reports", ft.Colors.RED)
+                    return
+                
+                try:
+                    print("DEBUG: Export Food Attendance to PDF button clicked")
+                    
+                    # Sanitize event name for filename
+                    safe_event_name = "".join(c for c in event['name'] if c.isalnum() or c in (' ', '-', '_')).strip()
+                    
+                    # Generate default filename
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    default_filename = f"FoodAttendance_{safe_event_name}_{timestamp}.pdf"
+                    
+                    # Show file picker dialog in a separate thread to avoid blocking UI
+                    def pick_save_location():
+                        try:
+                            # Create hidden root window for tkinter
+                            root = tk.Tk()
+                            root.withdraw()
+                            root.attributes('-topmost', True)
+                            
+                            filepath = filedialog.asksaveasfilename(
+                                defaultextension=".pdf",
+                                filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+                                initialfile=default_filename,
+                                title="Save Food Attendance Report"
+                            )
+                            
+                            root.destroy()
+                            return filepath
+                        
+                        except Exception as picker_error:
+                            print(f"Error in file picker: {picker_error}")
+                            return None
+                    
+                    # Run file picker in background thread
+                    filepath = pick_save_location()
+                    
+                    if not filepath:
+                        print("DEBUG: No file location selected")
+                        return
+                    
+                    print(f"DEBUG: Exporting food attendance to {filepath}")
+                    
+                    # Create parent directory if it doesn't exist
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    
+                    # Export
+                    exporter = AttendancePDFExporter(self.db)
+                    result = exporter.export_food_attendance(event_id, filepath)
+                    
+                    # Verify file was created
+                    if os.path.exists(filepath):
+                        file_size = os.path.getsize(filepath)
+                        print(f"DEBUG: Food Attendance PDF created successfully, size: {file_size} bytes")
+                        print(f"DEBUG: Export result: {result}")
+                        
+                        # Show success message with file location
+                        filename_only = os.path.basename(filepath)
+                        self.show_snackbar(f"✅ PDF saved: {filename_only}", ft.Colors.GREEN)
+                    else:
+                        print(f"DEBUG: PDF file was not created at {filepath}")
+                        raise FileNotFoundError(f"PDF file was not created: {filepath}")
+                    
+                except Exception as ex:
+                    print(f"Food Attendance Export error: {ex}")
+                    import traceback
+                    traceback.print_exc()
+                    self.show_snackbar(f"❌ Export failed: {str(ex)}", ft.Colors.RED)
+            
             return ft.View(
                 f"/event/{event_id}",
                 [
@@ -252,7 +326,7 @@ class EventView(BaseView):
                                             ft.ElevatedButton(
                                                 "Food Attendance",
                                                 icon=ft.Icons.LOCAL_DINING,
-                                                on_click=lambda e: self.page.go(f"/food-attendance/{event_id}"),
+                                                on_click=export_food_attendance_to_pdf,
                                                 width=150,
                                                 height=50,
                                                 style=ft.ButtonStyle(
