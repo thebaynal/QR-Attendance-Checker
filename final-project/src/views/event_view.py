@@ -234,18 +234,37 @@ class EventView(BaseView):
                                 ft.Text(event['date'], size=16, color=ft.Colors.GREY_700),
                             ] + (
                                 [
-                                    ft.ElevatedButton(
-                                        "Export to PDF",
-                                        icon=ft.Icons.PICTURE_AS_PDF,
-                                        on_click=export_to_pdf,
-                                        width=200,
-                                        height=50,
-                                        style=ft.ButtonStyle(
-                                            bgcolor=ft.Colors.RED_700,
-                                            color=ft.Colors.WHITE,
-                                            padding=ft.padding.symmetric(horizontal=20, vertical=12),
-                                            shape=ft.RoundedRectangleBorder(radius=5)
-                                        )
+                                    ft.Row(
+                                        [
+                                            ft.ElevatedButton(
+                                                "Attendance",
+                                                icon=ft.Icons.PICTURE_AS_PDF,
+                                                on_click=export_to_pdf,
+                                                width=150,
+                                                height=50,
+                                                style=ft.ButtonStyle(
+                                                    bgcolor=ft.Colors.RED_700,
+                                                    color=ft.Colors.WHITE,
+                                                    padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                                                    shape=ft.RoundedRectangleBorder(radius=5)
+                                                )
+                                            ),
+                                            ft.ElevatedButton(
+                                                "Food Attendance",
+                                                icon=ft.Icons.LOCAL_DINING,
+                                                on_click=lambda e: self.page.go(f"/food-attendance/{event_id}"),
+                                                width=150,
+                                                height=50,
+                                                style=ft.ButtonStyle(
+                                                    bgcolor=ft.Colors.ORANGE_700,
+                                                    color=ft.Colors.WHITE,
+                                                    padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                                                    shape=ft.RoundedRectangleBorder(radius=5)
+                                                )
+                                            ),
+                                        ],
+                                        spacing=10,
+                                        alignment=ft.MainAxisAlignment.CENTER
                                     ),
                                     ft.Divider(),
                                 ] if is_admin else [ft.Divider()]
