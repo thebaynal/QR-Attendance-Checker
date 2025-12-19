@@ -114,6 +114,10 @@ class MaScanApp:
             elif route.startswith("/scan/"):
                 event_id = route.split("/")[-1]
                 new_view = self.scan_view.build(event_id) if self.current_user else self.login_view.build()
+            elif route == "/food-attendance":
+                # Redirect to home if accessed without event_id
+                self.page.go("/home")
+                new_view = self.home_view.build() if self.current_user else self.login_view.build()
             elif route.startswith("/food-attendance/"):
                 event_id = route.split("/")[-1]
                 new_view = self.food_attendance_view.build(event_id) if self.current_user else self.login_view.build()
