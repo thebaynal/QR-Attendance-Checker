@@ -640,6 +640,63 @@ ngrok http 8080
 - ✅ Web Browsers (Chrome, Firefox, Safari, Edge)
 - ✅ Mobile Browsers (iOS Safari, Chrome Mobile)
 
+#### **Known Limitations**
+
+**1. Web App Camera Access on Mobile**
+
+| Scenario | Camera Works | Solution |
+|----------|--------------|----------|
+| Desktop App | ✅ Yes | Native access to camera |
+| Web Browser (HTTP) | ❌ No | Use ngrok or HTTPS |
+| Web Browser (HTTPS) | ✅ Yes | Browser permissions enabled |
+| Phone Browser (HTTP) | ❌ No | Browsers block HTTP camera access |
+| Phone Browser (HTTPS/ngrok) | ✅ Yes | Secure context required |
+
+**Why?** Web browsers require a secure context (HTTPS) to access device hardware like cameras for security reasons. When you access `http://192.168.1.16:8080` from a phone, the browser blocks camera permission because the connection is unencrypted.
+
+**Fix:** Use ngrok (adds HTTPS layer) or deploy with SSL certificates.
+
+---
+
+**2. SQLite Database Limitations**
+
+| Limitation | Impact | Why | Future Fix |
+|-----------|--------|-----|-----------|
+| Single-user writes | Medium | SQLite locks during writes | Use PostgreSQL |
+| Max ~10k records | Medium | Performance degrades | Database migration |
+| No concurrent access | Low | Only one device can write at a time | Real-time database |
+
+---
+
+**3. Polling Synchronization (2-second interval)**
+
+**Why:** Implements polling instead of real-time WebSockets for simplicity.
+
+- ✅ **Pros:** Simple to implement, works over HTTP, no persistent connections
+- ❌ **Cons:** Slight delay (up to 2 seconds), higher server load with many devices
+
+**Future:** Implement WebSocket-based real-time sync for instant updates.
+
+---
+
+**4. QR Code Requirements**
+
+- ✅ QR must be clearly visible (good lighting required)
+- ✅ QR must be undamaged (partial/corrupted codes won't scan)
+- ❌ Cannot scan from very small or pixelated QR codes
+- ❌ Cannot scan QR codes at extreme angles
+
+**Why:** OpenCV detection requires clear visual data. Low quality images reduce detection accuracy.
+
+---
+
+**5. Desktop App Limitations**
+
+- ❌ Cannot run simultaneously on multiple devices (requires API server mode)
+- ❌ Local database not shared between devices (use API mode for multi-device)
+
+---
+
 ---
 
 ### 7. Testing Summary
